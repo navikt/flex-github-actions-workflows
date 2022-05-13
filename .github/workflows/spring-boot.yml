@@ -1,4 +1,4 @@
-name: Spring boot gradle
+name: Spring boot
 on:
   workflow_call:
     inputs:
