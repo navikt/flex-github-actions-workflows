@@ -107,6 +107,26 @@ jobs:
           command: test
           args: --org=flex-kmy --severity-threshold=high --configuration-attributes=usage:java-runtime --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
 
+  snyk-test-docker:
+    runs-on: ubuntu-latest
+    needs: build-and-publish
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Last ned versjon
+        uses: actions/download-artifact@v3
+        with:
+          name: VERSION.txt
+          path: .
+      - run: echo "VERSION=`cat VERSION.txt`" >> $GITHUB_ENV
+      - run: echo "IMAGE=ghcr.io/navikt/$APP:$VERSION" >> $GITHUB_ENV
+      - name: Run Snyk to check Docker images for vulnerabilities
+        uses: snyk/actions/docker@7fc2a503b9b624bc777982df99412478ca61f05a
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ IMAGE }}
+          args: --severity-threshold=high
 
   deploy-to-dev-gcp:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
