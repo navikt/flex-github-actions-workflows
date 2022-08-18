@@ -125,7 +125,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ IMAGE }}
+          image: ${{ env.IMAGE }}
           args: --severity-threshold=high
 
   deploy-to-dev-gcp:
