@@ -108,7 +108,7 @@ jobs:
           args: --org=flex-kmy --severity-threshold=high --configuration-attributes=usage:java-runtime --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
 
   snyk-monitor-docker:
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     needs: build-and-publish
     steps:
@@ -128,7 +128,7 @@ jobs:
         with:
           command: monitor
           image: ${{ env.IMAGE }}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
+          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
 
   snyk-test-docker:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
