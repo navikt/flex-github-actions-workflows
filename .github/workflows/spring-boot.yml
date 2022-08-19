@@ -77,7 +77,7 @@ jobs:
           echo ${GITHUB_TOKEN} | docker login ghcr.io --username ${GITHUB_REPOSITORY} --password-stdin
           docker push ${IMAGE}
       - name: Slack Notification
-        uses: rtCamp/action-slack-notify@97203781672995f3035ab510df6b0fbb0e3e9af5
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         if: github.ref == 'refs/heads/master'
         env:
             SLACK_COLOR: '#ff0000'
@@ -208,7 +208,7 @@ jobs:
           RESOURCE: nais/app/naiserator.yaml
           VARS: nais/app/prod.yaml
       - name: Slack Notification
-        uses: rtCamp/action-slack-notify@97203781672995f3035ab510df6b0fbb0e3e9af5
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         if: github.ref == 'refs/heads/master'
         env:
           SLACK_COLOR: '#ff0000'
