@@ -135,7 +135,7 @@ jobs:
         with:
           command: monitor
           image: ${{ env.IMAGE }}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
+          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
 
   snyk-test-docker:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
@@ -158,7 +158,7 @@ jobs:
         with:
           command: test
           image: ${{ env.IMAGE }}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
+          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
 
   deploy-to-dev-gcp:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
