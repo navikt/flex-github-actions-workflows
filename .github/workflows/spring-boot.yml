@@ -1,4 +1,4 @@
-# Apper som bruker denne https://github.com/search?q=org%3Anavikt+flex-github-actions-workflows+language%3AYAML&type=Code
+# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fspring-boot.yml%40master%22+NOT+is%3Aarchived
 
 name: Spring boot
 on:
