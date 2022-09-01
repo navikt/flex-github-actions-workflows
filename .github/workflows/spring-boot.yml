@@ -110,33 +110,13 @@ jobs:
           command: test
           args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
 
-  snyk-monitor-docker:
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    needs: build-and-publish
-    steps:
-      - name: Run Snyk to check Docker images for vulnerabilities
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-          image: ${{needs.build-and-publish.outputs.image}}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
 
-  snyk-test-docker:
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
-    runs-on: ubuntu-latest
+  snyk-docker:
     needs: build-and-publish
-    steps:
-      - name: Run Snyk to check Docker images for vulnerabilities
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          image: ${{needs.build-and-publish.outputs.image}}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
+    uses: navikt/flex-github-actions-workflows/.github/workflows/spring-boot.yml@dockerreuse
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+    secrets: inherit
 
   deploy-to-dev-gcp:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
