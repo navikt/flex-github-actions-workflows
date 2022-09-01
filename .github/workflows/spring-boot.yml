@@ -8,8 +8,6 @@ on:
         required: true
         type: string
 
-env:
-  APP:  ${{ inputs.app }}
 
 jobs:
   build-and-publish:
@@ -31,7 +29,7 @@ jobs:
           TIME=$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M)
           COMMIT=$(git rev-parse --short=8 HEAD)
           VERSION=$TIME-$COMMIT
-          echo "::set-output name=image::ghcr.io/navikt/$APP:$VERSION"
+          echo "::set-output name=image::ghcr.io/navikt/${{ inputs.app }}:$VERSION"
       - name: Gradle wrapper validation
         uses: gradle/wrapper-validation-action@v1
       - uses: actions/cache@v3
@@ -110,74 +108,18 @@ jobs:
           command: test
           args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
 
-  snyk-monitor-docker:
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    needs: build-and-publish
-    steps:
-      - name: Run Snyk to check Docker images for vulnerabilities
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-          image: ${{needs.build-and-publish.outputs.image}}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
 
-  snyk-test-docker:
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
-    runs-on: ubuntu-latest
+  snyk-docker:
     needs: build-and-publish
-    steps:
-      - name: Run Snyk to check Docker images for vulnerabilities
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          image: ${{needs.build-and-publish.outputs.image}}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
+    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-docker.yml@master
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+    secrets: inherit
 
-  deploy-to-dev-gcp:
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
-    name: Deploy til dev-gcp
-    runs-on: ubuntu-latest
+  nais-deploy:
     needs: build-and-publish
-    concurrency: deploy-to-dev-gcp
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - uses: nais/deploy/actions/deploy@v1
-        name: Deploy to dev-gcp
-        env:
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-gcp
-          IMAGE: ${{needs.build-and-publish.outputs.image}}
-          RESOURCE: nais/app/naiserator.yaml
-          VARS: nais/app/dev.yaml
-
-  deploy-to-prod-gcp:
-    if: github.ref == 'refs/heads/master'
-    name: Deploy til prod-gcp
-    runs-on: ubuntu-latest
-    needs: build-and-publish
-    concurrency: deploy-to-prod-gcp
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - uses: nais/deploy/actions/deploy@v1
-        name: Deploy to prod-gcp
-        env:
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          IMAGE: ${{needs.build-and-publish.outputs.image}}
-          CLUSTER: prod-gcp
-          RESOURCE: nais/app/naiserator.yaml
-          VARS: nais/app/prod.yaml
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
-        if: failure() && github.ref == 'refs/heads/master'
-        env:
-          SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ inputs.app }} deploy til produksjon feilet
-          SLACK_TITLE: ':sad_cowboy:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+    uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+      app: ${{ inputs.app }}
+    secrets: inherit
