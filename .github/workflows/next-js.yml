@@ -1,0 +1,107 @@
+# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js.yml%40master%22+NOT+is%3Aarchived
+
+name: Next js
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: true
+        type: string
+    outputs:
+      image:
+        value: ${{ jobs.build-and-publish.outputs.image }}
+
+jobs:
+  build-and-publish:
+    name: Bygg, test og publiser docker image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.lag-image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - name: next.js cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+      - name: Generer image
+        id: lag-image
+        run: |
+          TIME=$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M)
+          COMMIT=$(git rev-parse --short=8 HEAD)
+          VERSION=$TIME-$COMMIT
+          echo "::set-output name=image::ghcr.io/navikt/${{ inputs.app }}:$VERSION"
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Run prettier
+        run: npm run prettier:check
+      - name: Run lint
+        run: npm run lint
+      - name: Run tests
+        run: npm run test:ci
+      - name: Enable sentry i master
+        if: github.ref_name == 'master'
+        run: echo "ENABLE_SENTRY=true" >> $GITHUB_ENV
+      - name: Build application
+        run: npm run build
+        env:
+          SENTRY_URL: https://sentry.gc.nav.no/
+          SENTRY_ORG: nav
+          SENTRY_PROJECT: ditt-sykefravaer
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Login GCP dev
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+        uses: google-github-actions/auth@v0.7.1
+        with:
+          credentials_json: ${{ secrets.STATIC_FILES_DEV }}
+      - name: Last opp statiske filer til dev
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+        uses: google-github-actions/upload-cloud-storage@v0.9.0
+        with:
+          path: .next/static
+          parent: false
+          destination: flex-static-files-dev/sykefravaer/_next/static
+      - name: Login GCP prod
+        if: github.ref == 'refs/heads/master'
+        uses: google-github-actions/auth@v0.7.1
+        with:
+          credentials_json: ${{ secrets.STATIC_FILES_PROD }}
+      - name: Last opp statiske filer til prod
+        if: github.ref_name == 'master'
+        uses: google-github-actions/upload-cloud-storage@v0.9.0
+        with:
+          path: .next/static
+          parent: false
+          destination: flex-static-files-prod/sykefravaer/_next/static
+      - name: Docker login
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'labs-')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo ${GITHUB_TOKEN} | docker login ghcr.io --username ${GITHUB_REPOSITORY} --password-stdin
+      - name: Bygg og push Docker image
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'labs-')
+        run: |
+          docker build . -f Dockerfile -t ${{ steps.lag-image.outputs.image }}
+          docker push ${{ steps.lag-image.outputs.image }}
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        if: failure() && github.ref_name == 'master'
+        env:
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: 'ditt sykefravær bygget feiler på master'
+          SLACK_TITLE: 'Auda :alert:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
+  snyk-docker:
+    needs: build-and-publish
+    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-docker.yml@master
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+    secrets: inherit
