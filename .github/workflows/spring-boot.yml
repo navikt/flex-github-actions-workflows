@@ -8,8 +8,6 @@ on:
         required: true
         type: string
 
-env:
-  APP:  ${{ inputs.app }}
 
 jobs:
   build-and-publish:
@@ -31,7 +29,7 @@ jobs:
           TIME=$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M)
           COMMIT=$(git rev-parse --short=8 HEAD)
           VERSION=$TIME-$COMMIT
-          echo "::set-output name=image::ghcr.io/navikt/$APP:$VERSION"
+          echo "::set-output name=image::ghcr.io/navikt/${{ inputs.app }}:$VERSION"
       - name: Gradle wrapper validation
         uses: gradle/wrapper-validation-action@v1
       - uses: actions/cache@v3
@@ -113,7 +111,7 @@ jobs:
 
   snyk-docker:
     needs: build-and-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/spring-boot.yml@dockerreuse
+    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-docker.yml@dockerreuse
     with:
       image: ${{ needs.build-and-publish.outputs.image }}
     secrets: inherit
