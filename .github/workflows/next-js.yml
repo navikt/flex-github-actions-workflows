@@ -90,6 +90,11 @@ jobs:
         run: |
           docker build . -f Dockerfile -t ${{ steps.lag-image.outputs.image }}
           docker push ${{ steps.lag-image.outputs.image }}
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         if: failure() && github.ref_name == 'master'
