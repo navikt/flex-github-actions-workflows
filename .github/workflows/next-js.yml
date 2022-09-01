@@ -30,6 +30,13 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+      - name: Cache Cypress binary
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-cypress-pr-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-cypress-
       - name: Generer image
         id: lag-image
         run: |
@@ -104,9 +111,3 @@ jobs:
           SLACK_TITLE: 'Auda :alert:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
-  snyk-docker:
-    needs: build-and-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-docker.yml@master
-    with:
-      image: ${{ needs.build-and-publish.outputs.image }}
-    secrets: inherit
