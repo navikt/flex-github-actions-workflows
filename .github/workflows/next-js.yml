@@ -5,7 +5,8 @@ on:
   workflow_call:
     inputs:
       app:
-        required: true
+        required: false
+        default: ${{ github.event.repository.name }}
         type: string
     outputs:
       image:
@@ -34,9 +35,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-cypress-pr-${{ hashFiles('**/package.json') }}
-          restore-keys: |
-            cypress-${{ runner.os }}-cypress-
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
       - name: Generer image
         id: lag-image
         run: |
@@ -103,11 +102,66 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
       - name: Slack Notification
-        uses: rtCamp/action-slack-notify@v2
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         if: failure() && github.ref_name == 'master'
         env:
           SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: 'ditt sykefravær bygget feiler på master'
+          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på master
           SLACK_TITLE: 'Auda :alert:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
+  cypress:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: [ 0, 1, 2, 3 ]
+    steps:
+      - run: echo ${{ matrix.containers }}
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: cache cypress binary
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+      - name: Kjør cypress
+        uses: cypress-io/github-action@f5bea478b80a774068179089247f13d60abc5010
+        with:
+          start: npm run start-ingen-dekorator
+          wait-on: http://localhost:8080/syk/sykefravaer/api/internal/isAlive
+          config-file: cypress.config.ts
+          spec: cypress/e2e/run-${{ matrix.containers }}/**
+          install: false
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+      - name: Slack Notification ved feil
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
+        if: failure() && github.ref_name == 'master'
+        env:
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: ${{ github.event.repository.name }} cypress tester feiler på master TESTING
+          SLACK_TITLE: 'Auda :alert:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
+  snyk-docker:
+    needs: build-and-publish
+    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-docker.yml@master
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+    secrets: inherit
+
+  nais-deploy:
+    needs: build-and-publish
+    uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+      app: ${{ inputs.app }}
+    secrets: inherit
