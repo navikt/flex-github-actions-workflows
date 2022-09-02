@@ -197,7 +197,7 @@ jobs:
           SLACK_TITLE: ${{ github.ref_name }}
           SLACK_USERNAME: Labs deploy
           SLACK_ICON: ':lab_coat:'
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
 
   deploy-til-labs-gcp:
     if: github.ref_name == 'master'
