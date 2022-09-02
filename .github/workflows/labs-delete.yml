@@ -9,7 +9,7 @@ on:
 
 jobs:
   delete-labs-app:
-    if: startsWith(github.ref_name, 'labs-')
+    if: startsWith(github.event.ref, 'labs-')
     name: Delete branch labs-gcp
     runs-on: ubuntu-latest
     env:
