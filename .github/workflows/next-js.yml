@@ -11,7 +11,7 @@ on:
       static-files-path:
         required: true
         type: string
-     base-path:
+      base-path:
         required: true
         type: string
     outputs:
