@@ -5,9 +5,9 @@ on:
   workflow_call:
     inputs:
       app:
-        required: true
+        required: false
+        default: ${{ github.event.repository.name }}
         type: string
-
 
 jobs:
   build-and-publish:

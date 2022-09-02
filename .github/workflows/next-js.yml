@@ -8,6 +8,12 @@ on:
         required: false
         default: ${{ github.event.repository.name }}
         type: string
+      static-files-path:
+        required: true
+        type: string
+      cypress-wait-on:
+        required: true
+        type: string
     outputs:
       image:
         value: ${{ jobs.build-and-publish.outputs.image }}
@@ -59,7 +65,7 @@ jobs:
         env:
           SENTRY_URL: https://sentry.gc.nav.no/
           SENTRY_ORG: nav
-          SENTRY_PROJECT: ditt-sykefravaer
+          SENTRY_PROJECT: ${{ inputs.app }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - name: Login GCP dev
         if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
@@ -72,7 +78,7 @@ jobs:
         with:
           path: .next/static
           parent: false
-          destination: flex-static-files-dev/sykefravaer/_next/static
+          destination: flex-static-files-dev/${{inputs.static-files-path}}/_next/static
       - name: Login GCP prod
         if: github.ref == 'refs/heads/master'
         uses: google-github-actions/auth@v0.7.1
@@ -84,7 +90,7 @@ jobs:
         with:
           path: .next/static
           parent: false
-          destination: flex-static-files-prod/sykefravaer/_next/static
+          destination: flex-static-files-prod/${{inputs.static-files-path}}/_next/static
       - name: Docker login
         if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'labs-')
         env:
@@ -130,10 +136,10 @@ jobs:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
       - name: Kjør cypress
-        uses: cypress-io/github-action@f5bea478b80a774068179089247f13d60abc5010
+        uses: cypress-io/github-action@30008f1458a5a2c97054bfe118fe33d75976c482
         with:
           start: npm run start-ingen-dekorator
-          wait-on: http://localhost:8080/syk/sykefravaer/api/internal/isAlive
+          wait-on: ${{inputs.cypress-wait-on}}
           config-file: cypress.config.ts
           spec: cypress/e2e/run-${{ matrix.containers }}/**
           install: false
