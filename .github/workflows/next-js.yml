@@ -212,7 +212,7 @@ jobs:
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_MESSAGE: 'Ny versjon av ${{ inputs.app }} ute i labs :rocket: https://${{ env.LABS_APPNAME }}.labs.nais.io'
+          SLACK_MESSAGE: 'Ny versjon av ${{ inputs.app }} ute i labs :rocket: https://${{ env.LABS_APPNAME }}.labs.nais.io/${{inputs.base-path}}'
           SLACK_TITLE: ${{ github.ref_name }}
           SLACK_USERNAME: Labs deploy
           SLACK_ICON: ':lab_coat:'
