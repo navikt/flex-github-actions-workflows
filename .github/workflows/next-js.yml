@@ -124,7 +124,6 @@ jobs:
       matrix:
         containers: [ 0, 1, 2, 3 ]
     steps:
-      - run: echo ${{ matrix.containers }}
       - name: cache workspace
         uses: actions/cache@v3
         with:
@@ -156,6 +155,26 @@ jobs:
           SLACK_MESSAGE: ${{ github.event.repository.name }} cypress tester feiler på master
           SLACK_TITLE: 'Auda :alert:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
+  snyk-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Monitor npm avhengigheter
+        if: github.ref_name == 'master'
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git --all-projects
+      - name: Test npm avhengigheter
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git --all-projects
 
   snyk-docker:
     needs: build-and-publish
