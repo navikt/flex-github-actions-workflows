@@ -167,7 +167,7 @@ jobs:
     secrets: inherit
 
   deploy-branch-til-labs-gcp:
-    if: startsWith(github.ref_name, 'labs-') || true
+    if: startsWith(github.ref_name, 'labs-')
     name: Deploy branch til labs-gcp
     needs: build-and-publish
     runs-on: ubuntu-latest
@@ -181,11 +181,12 @@ jobs:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: labs-gcp
           RESOURCE: nais/app/labs.yaml
+          IMAGE: ${{ needs.build-and-publish.outputs.image }}
           VAR: appname=${{ env.LABS_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.LABS_APPNAME }}.labs.nais.io/
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         env:
-          SLACK_COLOR: ${{ job.status }} # or a specific color like 'good' or '#ff00ff'
+          SLACK_COLOR: ${{ job.status }}
           SLACK_MESSAGE: 'Ny versjon av ${{ inputs.app }} ute i labs :rocket: https://${{ env.LABS_APPNAME }}.labs.nais.io'
           SLACK_TITLE: ${{ github.ref_name }}
           SLACK_USERNAME: Labs deploy
@@ -193,7 +194,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
   deploy-til-labs-gcp:
-    if: github.ref_name == 'master' || true
+    if: github.ref_name == 'master'
     name: Deploy til labs-gcp
     needs: [build-and-publish, cypress]
     runs-on: ubuntu-latest
@@ -205,4 +206,5 @@ jobs:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: labs-gcp
           RESOURCE: nais/app/labs.yaml
+          IMAGE: ${{ needs.build-and-publish.outputs.image }}
           VAR: appname=${{ inputs.app }},replicas=1,branchState=alive,ingress=https://${{ inputs.app }}.labs.nais.io/
