@@ -13,7 +13,7 @@ jobs:
     name: Delete branch labs-gcp
     runs-on: ubuntu-latest
     env:
-      LABS_APPNAME: ${{ inputs.app }}-${{ github.ref_name }}
+      LABS_APPNAME: ${{ inputs.app }}-${{ github.event.ref }}
     steps:
       - uses: actions/checkout@v3
       - run: echo "IMAGE=ghcr.io/navikt/$APP:latest" >> $GITHUB_ENV
