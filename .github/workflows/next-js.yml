@@ -11,7 +11,7 @@ on:
       static-files-path:
         required: true
         type: string
-      cypress-wait-on:
+     base-path:
         required: true
         type: string
     outputs:
@@ -138,7 +138,7 @@ jobs:
         uses: cypress-io/github-action@30008f1458a5a2c97054bfe118fe33d75976c482
         with:
           start: npm run start-ingen-dekorator
-          wait-on: ${{inputs.cypress-wait-on}}
+          wait-on: http://localhost:8080/${{inputs.base-path}}/api/internal/isAlive
           config-file: cypress.config.ts
           spec: cypress/e2e/run-${{ matrix.containers }}/**
           install: false
@@ -232,4 +232,4 @@ jobs:
           CLUSTER: labs-gcp
           RESOURCE: nais/app/labs.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
-          VAR: appname=${{ inputs.app }},replicas=1,branchState=alive,ingress=https://${{ inputs.app }}.labs.nais.io/
+          VAR: appname=${{ inputs.app }},replicas=1,branchState=alive,ingress=https://${{ inputs.app }}.labs.nais.io/${{inputs.base-path}}
