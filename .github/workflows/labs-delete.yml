@@ -1,0 +1,28 @@
+name: Labs delete
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: false
+        default: ${{ github.event.repository.name }}
+        type: string
+
+jobs:
+  delete-labs-app:
+    if: startsWith(github.ref_name, 'labs-')
+    name: Delete branch labs-gcp
+    runs-on: ubuntu-latest
+    env:
+      LABS_APPNAME: ${{ inputs.app }}-${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: echo "IMAGE=ghcr.io/navikt/$APP:latest" >> $GITHUB_ENV
+      - name: Skaler ned app i labs-gcp
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: labs-gcp
+          RESOURCE: nais/app/labs.yaml
+          IMAGE: ghcr.io/navikt/${{ inputs.app }}:latest
+          VAR: appname=${{ env.LABS_APPNAME }},replicas=0,branchState=deleted,ingress=https://${{ env.LABS_APPNAME }}.labs.nais.io/
+
