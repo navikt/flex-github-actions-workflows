@@ -167,14 +167,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git --all-projects
+          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
       - name: Test npm avhengigheter
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git --all-projects
+          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
 
   snyk-docker:
     needs: build-and-publish
