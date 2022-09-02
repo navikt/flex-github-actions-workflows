@@ -16,7 +16,6 @@ jobs:
       LABS_APPNAME: ${{ inputs.app }}-${{ github.event.ref }}
     steps:
       - uses: actions/checkout@v3
-      - run: echo "IMAGE=ghcr.io/navikt/$APP:latest" >> $GITHUB_ENV
       - name: Skaler ned app i labs-gcp
         uses: nais/deploy/actions/deploy@v1
         env:
