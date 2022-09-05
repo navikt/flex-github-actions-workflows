@@ -14,6 +14,10 @@ on:
       base-path:
         required: true
         type: string
+      labs-ingress:
+        required: false
+        default: ${{ github.event.repository.name }}
+        type: string
       sentry-project:
         required: false
         default: ${{ github.event.repository.name }}
@@ -238,4 +242,4 @@ jobs:
           CLUSTER: labs-gcp
           RESOURCE: nais/app/labs.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
-          VAR: appname=${{ inputs.app }},replicas=1,branchState=alive,ingress=https://${{ inputs.app }}.labs.nais.io/${{inputs.base-path}}
+          VAR: appname=${{ inputs.app }},replicas=1,branchState=alive,ingress=https://${{ inputs.labs-ingress }}.labs.nais.io/${{inputs.base-path}}
