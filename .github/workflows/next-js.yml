@@ -14,6 +14,10 @@ on:
       base-path:
         required: true
         type: string
+      sentry-project:
+        required: false
+        default: ${{ github.event.repository.name }}
+        type: string
     outputs:
       image:
         value: ${{ jobs.build-and-publish.outputs.image }}
