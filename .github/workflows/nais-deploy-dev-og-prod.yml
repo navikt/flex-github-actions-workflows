@@ -8,44 +8,64 @@ on:
       app:
         required: true
         type: string
+      dev-cluster:
+        required: false
+        default: dev-gcp
+        type: string
+      prod-cluster:
+        required: false
+        default: prod-gcp
+        type: string
+      nais-template:
+        required: false
+        default: nais/app/naiserator.yaml
+        type: string
+      prod-vars:
+        required: false
+        default: nais/app/prod.yaml
+        type: string
+      dev-vars:
+        required: false
+        default: nais/app/dev.yaml
+        type: string
 
 jobs:
-  deploy-til-dev-gcp:
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
-    name: Deploy til dev-gcp
+  deploy-til-dev:
+    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+    name: Deploy til dev
     runs-on: ubuntu-latest
-    concurrency: deploy-til-dev-gcp
+    concurrency: deploy-til-dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - uses: nais/deploy/actions/deploy@v1
-        name: Deploy til dev-gcp
+        name: Deploy til dev
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-gcp
+          CLUSTER: ${{ inputs.dev-cluster }}
           IMAGE: ${{ inputs.image }}
-          RESOURCE: nais/app/naiserator.yaml
-          VARS: nais/app/dev.yaml
+          RESOURCE: ${{ inputs.nais-template }}
+          VARS: ${{ inputs.dev-vars }}
 
-  deploy-til-prod-gcp:
-    if: github.ref == 'refs/heads/master'
-    name: Deploy til prod-gcp
+  deploy-til-prod:
+    if: github.ref_name == 'master'
+    name: Deploy til prod
     runs-on: ubuntu-latest
-    concurrency: deploy-til-prod-gcp
+    concurrency: deploy-til
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - uses: nais/deploy/actions/deploy@v1
-        name: Deploy til prod-gcp
+        name: Deploy til prod
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           IMAGE: ${{ inputs.image }}
-          CLUSTER: prod-gcp
-          RESOURCE: nais/app/naiserator.yaml
-          VARS: nais/app/prod.yaml
+          CLUSTER: ${{ inputs.prod-cluster }}
+          RESOURCE: ${{ inputs.nais-template }}
+          VARS: ${{ inputs.prod-vars }}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
-        if: failure() && github.ref == 'refs/heads/master'
+        if: failure() && github.ref_name == 'master'
         env:
           SLACK_COLOR: '#ff0000'
           SLACK_MESSAGE: ${{ inputs.app }} deploy til produksjon feilet
