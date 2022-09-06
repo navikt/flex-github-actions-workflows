@@ -23,6 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.lag-image.outputs.image }}
+    env:
+      ORG_GRADLE_PROJECT_githubUser: x-access-token
+      ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Setup java
         uses: actions/setup-java@v3
@@ -53,31 +56,37 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-wrapper-
       - name: Lint koden
-        env:
-          ORG_GRADLE_PROJECT_githubUser: x-access-token
-          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew ktlintCheck
+        run:  ./gradlew ktlintCheck
+
       - name: Run tests
-        env:
-          ORG_GRADLE_PROJECT_githubUser: x-access-token
-          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew test
+        run:  ./gradlew test
+
+      - name: 🧬 Testresultater
+        uses: dorny/test-reporter@0d00bb14cb0cc2c9b8985df6e81dd333188224e1
+        if: always()
+        with:
+          name: 🧬 Testresultater
+          path: "**/build/test-results/test/TEST-*.xml"
+          reporter: java-junit
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build jar
-        env:
-          ORG_GRADLE_PROJECT_githubUser: x-access-token
-          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew bootJar -x test
-      - name: Build and publish Docker image
-        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew bootJar -x test
+
+      - name: Docker login
+        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bygg og publiser Docker image
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
         run: |
           docker build -t ${{ steps.lag-image.outputs.image }} .
-          echo ${GITHUB_TOKEN} | docker login ghcr.io --username ${GITHUB_REPOSITORY} --password-stdin
           docker push ${{ steps.lag-image.outputs.image }}
+
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         if: failure() && github.ref == 'refs/heads/master'
