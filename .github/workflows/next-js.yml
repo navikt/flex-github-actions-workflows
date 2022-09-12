@@ -167,24 +167,9 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
   snyk-npm:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Monitor npm avhengigheter
-        if: github.ref_name == 'master'
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
-      - name: Test npm avhengigheter
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
+    needs: build-and-publish
+    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-npm.yml@master
+    secrets: inherit
 
   snyk-docker:
     needs: build-and-publish
