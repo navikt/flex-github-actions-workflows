@@ -8,7 +8,7 @@ on:
 
 jobs:
   snyk-monitor-docker:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref_name == 'master'
     runs-on: ubuntu-latest
     steps:
       - name: Run Snyk to check Docker images for vulnerabilities
@@ -21,7 +21,7 @@ jobs:
           args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
 
   snyk-test-docker:
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/dev-')
+    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     runs-on: ubuntu-latest
     steps:
       - name: Run Snyk to check Docker images for vulnerabilities
