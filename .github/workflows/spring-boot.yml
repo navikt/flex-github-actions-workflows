@@ -61,15 +61,6 @@ jobs:
       - name: Run tests
         run:  ./gradlew test
 
-      - name: 🧬 Testresultater
-        uses: dorny/test-reporter@0d00bb14cb0cc2c9b8985df6e81dd333188224e1
-        if: always()
-        with:
-          name: 🧬 Testresultater
-          path: "**/build/test-results/test/TEST-*.xml"
-          reporter: java-junit
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build jar
         run: ./gradlew bootJar -x test
 
