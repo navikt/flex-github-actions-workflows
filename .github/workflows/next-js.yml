@@ -22,6 +22,10 @@ on:
         required: false
         default: ${{ github.event.repository.name }}
         type: string
+      sentry-enabled:
+        required: false
+        default: true
+        type: boolean
     outputs:
       image:
         value: ${{ jobs.build-and-publish.outputs.image }}
@@ -68,7 +72,7 @@ jobs:
       - name: Run tests
         run: npm run test:ci
       - name: Enable sentry i master
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'master' && sentry-enabled == true
         run: echo "ENABLE_SENTRY=true" >> $GITHUB_ENV
       - name: Build application
         run: npm run build
