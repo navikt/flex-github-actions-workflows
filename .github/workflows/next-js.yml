@@ -72,7 +72,7 @@ jobs:
       - name: Run tests
         run: npm run test:ci
       - name: Enable sentry i master
-        if: github.ref_name == 'master' && sentry-enabled == true
+        if: github.ref_name == 'master' && inputs.sentry-enabled == true
         run: echo "ENABLE_SENTRY=true" >> $GITHUB_ENV
       - name: Build application
         run: npm run build
