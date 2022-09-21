@@ -18,7 +18,7 @@ jobs:
         with:
           command: monitor
           image: ${{ inputs.image }}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
+          args: --org=flex-kmy --severity-threshold=critical --project-name=${{ github.repository }}
 
   snyk-test-docker:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
