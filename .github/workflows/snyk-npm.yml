@@ -15,6 +15,7 @@ jobs:
           command: monitor
           args: --org=flex-kmy --severity-threshold=critical --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
       - name: Test npm avhengigheter
+        if: !startsWith(github.ref_name, 'dependabot-') # Dependabot har ikke SNYK_TOKEN
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
