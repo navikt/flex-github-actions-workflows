@@ -63,7 +63,7 @@ jobs:
           echo "::set-output name=image::ghcr.io/navikt/${{ inputs.app }}:$VERSION"
       - name: Install npm dependencies
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.READER_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci
       - name: Run prettier
         run: npm run prettier:check
