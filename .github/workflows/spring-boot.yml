@@ -103,7 +103,7 @@ jobs:
           args: --org=flex-kmy --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
 
   snyk-test-gradle:
-    if: startsWith(github.ref_name, 'dependabot-') == false # Dependabot har ikke SNYK_TOKEN
+    if: startsWith(github.ref_name, 'dependabot') == false # Dependabot har ikke SNYK_TOKEN
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
