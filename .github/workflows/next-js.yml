@@ -221,6 +221,7 @@ jobs:
     if: github.ref_name == 'master'
     name: Deploy til labs-gcp
     needs: [build-and-publish, cypress]
+    concurrency: deploy-til-labs-gcp
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
