@@ -31,4 +31,4 @@ jobs:
         with:
           command: test
           image: ${{ inputs.image }}
-          args: --org=flex-kmy --severity-threshold=high --project-name=${{ github.repository }}
+          args: --org=flex-kmy --severity-threshold=critical --project-name=${{ github.repository }}
