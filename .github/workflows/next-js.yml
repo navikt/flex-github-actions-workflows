@@ -157,6 +157,7 @@ jobs:
           spec: cypress/e2e/run-${{ matrix.containers }}/**
           install: false
       - uses: actions/upload-artifact@v3
+        if: failure()
         with:
           name: cypress-screenshots
           path: cypress/screenshots
