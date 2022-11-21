@@ -81,6 +81,21 @@ jobs:
           SENTRY_ORG: nav
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Last opp static files til NAV CDN dev
+        uses: nais/frontend-plattform-cdn-upload-action@main
+        with:
+          cdn-environment: cdn.dev.nav.no
+          cdn-team-name: flex
+          source: ./.next/static
+          destination: /${{github.event.repository.name}}/_next
+      - name: Last opp static files til NAV CDN prod
+        if: github.ref_name == 'master'
+        uses: nais/frontend-plattform-cdn-upload-action@main
+        with:
+          cdn-environment: cdn.nav.no
+          cdn-team-name: flex
+          source: ./.next/static
+          destination: /${{github.event.repository.name}}/_next
       - name: Login GCP dev
         if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
         uses: google-github-actions/auth@v0.8.1
