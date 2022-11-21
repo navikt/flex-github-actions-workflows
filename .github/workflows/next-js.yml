@@ -8,9 +8,6 @@ on:
         required: false
         default: ${{ github.event.repository.name }}
         type: string
-      static-files-path:
-        required: true
-        type: string
       base-path:
         required: true
         type: string
@@ -96,30 +93,6 @@ jobs:
           cdn-team-name: flex
           source: ./.next/static
           destination: /${{github.event.repository.name}}/_next
-      - name: Login GCP dev
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
-        uses: google-github-actions/auth@v0.8.1
-        with:
-          credentials_json: ${{ secrets.STATIC_FILES_DEV }}
-      - name: Last opp statiske filer til dev
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
-        uses: google-github-actions/upload-cloud-storage@v0.10.2
-        with:
-          path: .next/static
-          parent: false
-          destination: flex-static-files-dev/${{inputs.static-files-path}}/_next/static
-      - name: Login GCP prod
-        if: github.ref_name == 'master'
-        uses: google-github-actions/auth@v0.8.1
-        with:
-          credentials_json: ${{ secrets.STATIC_FILES_PROD }}
-      - name: Last opp statiske filer til prod
-        if: github.ref_name == 'master'
-        uses: google-github-actions/upload-cloud-storage@v0.10.2
-        with:
-          path: .next/static
-          parent: false
-          destination: flex-static-files-prod/${{inputs.static-files-path}}/_next/static
       - name: Docker login
         if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'labs-')
         env:
