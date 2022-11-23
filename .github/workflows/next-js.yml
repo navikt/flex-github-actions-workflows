@@ -57,7 +57,7 @@ jobs:
           TIME=$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M)
           COMMIT=$(git rev-parse --short=8 HEAD)
           VERSION=$TIME-$COMMIT
-          echo "::set-output name=image::ghcr.io/navikt/${{ inputs.app }}:$VERSION"
+          echo "image=ghcr.io/navikt/${{ inputs.app }}:$VERSION" >> $GITHUB_OUTPUT
       - name: Install npm dependencies
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
