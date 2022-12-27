@@ -12,11 +12,18 @@ jobs:
         id: dependabot-metadata
         uses: dependabot/fetch-metadata@v1
       - name: Skal label
-        run: gh label create ${{ steps.dependabot-metadata.outputs.update-type }} --description "Update type fra dependabot metadata" --color E99695 -f
+        run: gh label create automerge --description "Kandidat for automerging hvis alt går grønt" --color E99695 -f
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      - name: Label pr
-        run: gh pr edit "$PR_URL" --add-label ${{ steps.dependabot-metadata.outputs.update-type }}
+      - name: Label patch
+        if: ${{ steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' }}
+        run: gh pr edit "$PR_URL" --add-label automerge
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Label minor
+        if: ${{ steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' }}
+        run: gh pr edit "$PR_URL" --add-label automerge
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
