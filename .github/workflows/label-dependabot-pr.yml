@@ -11,7 +11,9 @@ jobs:
       - name: Fetch Dependabot metadata
         id: dependabot-metadata
         uses: dependabot/fetch-metadata@v1
-      - name: Label
+      - name: Skal label
+        run: gh label create ${{ steps.dependabot-metadata.outputs.update-type }} --description "Update type fra dependabot metadata" --color E99695 -f
+      - name: Label pr
         run: gh pr edit "$PR_URL" --add-label ${{ steps.dependabot-metadata.outputs.update-type }}
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
