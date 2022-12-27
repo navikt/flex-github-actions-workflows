@@ -12,7 +12,7 @@ jobs:
         id: dependabot-metadata
         uses: dependabot/fetch-metadata@v1
       - name: Label
-        run: gh pr edit "$PR_URL" --add-label "${{ steps.dependabot-metadata.outputs.update-type }}"
+        run: gh pr edit "$PR_URL" --add-label ${{ steps.dependabot-metadata.outputs.update-type }}
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
