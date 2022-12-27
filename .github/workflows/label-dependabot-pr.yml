@@ -1,0 +1,18 @@
+name: Label dependabot pr
+on:
+  workflow_call:
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && !github.event.pull_request.head.repo.fork }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v1
+      - name: Label
+        run: gh pr edit "$PR_URL" --add-label "${{ steps.dependabot-metadata.outputs.update-type }}"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
