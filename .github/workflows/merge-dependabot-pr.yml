@@ -10,7 +10,9 @@ jobs:
       - run: echo "prnumber=$(gh pr list --search "status:success label:automerge" -A app/dependabot -L 1 --json number --template '{{range .}}{{printf "%.0f\n" .number}}{{end}}')" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ github.token }}
-      - run: echo "${{ env.prnumber }}"
       - run: gh pr merge ${{ env.prnumber }} --squash
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: gh workflow run workflow.yml
         env:
           GH_TOKEN: ${{ github.token }}
