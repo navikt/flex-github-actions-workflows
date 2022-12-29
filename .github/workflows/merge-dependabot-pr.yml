@@ -6,15 +6,14 @@ jobs:
   merge-pullrequests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: echo "prnumber=$(gh pr list --search "status:success label:automerge" -A app/dependabot -L 1 --json number --template '{{range .}}{{printf "%.0f\n" .number}}{{end}}')" >> $GITHUB_ENV
+      - run: echo "prnumber=$(gh pr list --repo $GITHUB_REPOSITORY --search "status:success label:automerge" -A app/dependabot -L 1 --json number --template '{{range .}}{{printf "%.0f\n" .number}}{{end}}')" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ github.token }}
-      - run: gh pr merge ${{ env.prnumber }} --squash
+      - run: gh pr merge ${{ env.prnumber }} --squash --repo $GITHUB_REPOSITORY
         if: "${{ env.prnumber != '' }}"
         env:
           GH_TOKEN: ${{ github.token }}
-      - run: gh workflow run workflow.yml
+      - run: gh workflow run workflow.yml --repo $GITHUB_REPOSITORY
         if: "${{ env.prnumber != '' }}"
         env:
           GH_TOKEN: ${{ github.token }}
