@@ -6,14 +6,93 @@ jobs:
   merge-pullrequests:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "prnumber=$(gh pr list --repo $GITHUB_REPOSITORY --search "status:success label:automerge" -A app/dependabot -L 1 --json number --template '{{range .}}{{printf "%.0f\n" .number}}{{end}}')" >> $GITHUB_ENV
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - run: gh pr merge ${{ env.prnumber }} --squash --repo $GITHUB_REPOSITORY
-        if: "${{ env.prnumber != '' }}"
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - run: gh workflow run workflow.yml --repo $GITHUB_REPOSITORY
-        if: "${{ env.prnumber != '' }}"
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            const pulls = await github.request('GET /repos/{owner}/{repo}/pulls', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+            })
+
+            const filtrert = pulls.data
+                .filter((it) => it.state == 'open')
+                .filter((it) => it.user?.login == 'dependabot[bot]')
+                .filter((it) => it.labels.some((l) => l.name == 'automerge'))
+                .map((it) => {
+                    return {
+                        title: it.title,
+                        number: it.number,
+
+                    }
+                })
+                .map(async (it) => {
+                    const QUERY = `query($owner: String!, $repo: String!, $pull_number: Int!) {
+                                          repository(owner: $owner, name:$repo) {
+                                            pullRequest(number:$pull_number) {
+                                              commits(last: 1) {
+                                                nodes {
+                                                  commit {
+                                                    statusCheckRollup {
+                                                      state
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }`
+
+                    const result = await github.graphql(QUERY, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: it.number,
+                    })
+                    const [{ commit: lastCommit }] =
+                        result.repository.pullRequest.commits.nodes
+
+                    return {
+                        title: it.title,
+                        number: it.number,
+                        checksOk: lastCommit.statusCheckRollup?.state === 'SUCCESS',
+                    }
+                })
+
+            const allePrs = await Promise.all(filtrert)
+            const medMergeablePromise = allePrs
+                .filter((it) => it.checksOk)
+                .map(async (it) => {
+                    const prdata = await github.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: it.number
+                    })
+                    return {
+                        title: it.title,
+                        number: it.number,
+                        mergeable: prdata.data.mergeable
+                    }
+                })
+            const medMergeable = await Promise.all(medMergeablePromise)
+            if (medMergeable.length > 0) {
+                const pr = medMergeable[0]
+                console.log('Merger PR', pr.title)
+                await github.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pr.number,
+                    merge_method: 'squash'
+                })
+                console.log('Starter master workflow')
+
+                await github.request(
+                    'POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches',
+                    {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        workflow_id: 'workflow.yml',
+                        ref: 'master',
+                    }
+                )
+            } else {
+                console.log('Ingen PRer å merge')
+            }
