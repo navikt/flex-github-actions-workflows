@@ -135,6 +135,8 @@ jobs:
           config-file: cypress.config.ts
           spec: cypress/e2e/run-${{ matrix.containers }}/**
           install: false
+        env:
+          MOCK_BACKEND: 'true'
       - uses: actions/upload-artifact@v3
         if: failure()
         with:
