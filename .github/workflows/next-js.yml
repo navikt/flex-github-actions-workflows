@@ -186,6 +186,7 @@ jobs:
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: labs-gcp
+          DEPLOY_SERVER: deploy.nais.io:443
           RESOURCE: nais/app/labs.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
           VAR: appname=${{ env.LABS_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.LABS_APPNAME }}.labs.nais.io/
@@ -212,6 +213,7 @@ jobs:
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: labs-gcp
+          DEPLOY_SERVER: deploy.nais.io:443
           RESOURCE: nais/app/labs.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
           VAR: appname=${{ inputs.app }},replicas=1,branchState=alive,ingress=https://${{ inputs.labs-ingress }}.labs.nais.io

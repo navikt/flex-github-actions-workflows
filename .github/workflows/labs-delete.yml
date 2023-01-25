@@ -21,6 +21,7 @@ jobs:
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: labs-gcp
+          DEPLOY_SERVER: deploy.nais.io:443
           RESOURCE: nais/app/labs.yaml
           IMAGE: ghcr.io/navikt/${{ inputs.app }}:latest
           VAR: appname=${{ env.LABS_APPNAME }},replicas=0,branchState=deleted,ingress=https://${{ env.LABS_APPNAME }}.labs.nais.io/
