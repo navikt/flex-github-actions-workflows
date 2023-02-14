@@ -128,7 +128,7 @@ jobs:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
       - name: Kjør cypress
-        uses: cypress-io/github-action@v5.0.5
+        uses: cypress-io/github-action@v5.0.9
         with:
           start: npm run start-ingen-dekorator
           wait-on: http://localhost:8080/${{inputs.base-path}}/api/internal/isAlive
