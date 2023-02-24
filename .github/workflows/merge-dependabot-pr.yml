@@ -20,8 +20,8 @@ jobs:
                 .filter((it) => {
                     const prCreated = new Date(it.created_at)
                     if (it.title.includes('navikt')) {
-                      const twoDays = 2 * 24 * 60 * 60 * 1000
-                      return prCreated.getTime() < Date.now() - twoDays
+                      const twoHours = 2 * 60 * 60 * 1000
+                      return prCreated.getTime() < Date.now() - twoHours
                     }
                     const oneWeek = 7 * 24 * 60 * 60 * 1000
                     return prCreated.getTime() < Date.now() - oneWeek
