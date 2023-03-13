@@ -34,7 +34,7 @@ jobs:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     name: Deploy til dev
     runs-on: ubuntu-latest
-    concurrency: deploy-til-dev
+    concurrency: deploy-${{ inputs.app }}-til-dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -51,7 +51,7 @@ jobs:
     if: github.ref_name == 'master'
     name: Deploy til prod
     runs-on: ubuntu-latest
-    concurrency: deploy-til
+    concurrency: deploy-${{ inputs.app }}-til-prod
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
