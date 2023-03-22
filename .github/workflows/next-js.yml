@@ -182,7 +182,6 @@ jobs:
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: dev-gcp
-          DEPLOY_SERVER: deploy.nais.io:443
           RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
           VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_APPNAME }}.ekstern.dev.nav.no/${{inputs.base-path}}
@@ -209,7 +208,6 @@ jobs:
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: dev-gcp
-          DEPLOY_SERVER: deploy.nais.io:443
           RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
           VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://www.demo.ekstern.dev.nav.no/${{inputs.base-path}}
