@@ -210,4 +210,4 @@ jobs:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
-          VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://www.demo.ekstern.dev.nav.no/${{inputs.base-path}}
+          VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
