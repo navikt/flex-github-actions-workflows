@@ -197,7 +197,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
 
   deploy-demo-til-dev-gcp:
-    if: github.ref_name == 'demo-demotesting'
+    if: github.ref_name == 'dev-demotesting'
     name: Deploy demo til dev-gcp
     needs: [build-and-publish, cypress]
     concurrency: deploy-demo-til-dev-gcp
