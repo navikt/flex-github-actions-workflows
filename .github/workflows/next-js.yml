@@ -11,10 +11,6 @@ on:
       base-path:
         required: true
         type: string
-      labs-ingress:
-        required: false
-        default: ${{ github.event.repository.name }}
-        type: string
       sentry-project:
         required: false
         default: ${{ github.event.repository.name }}
@@ -85,13 +81,13 @@ jobs:
           source: ./.next/static
           destination: /${{github.event.repository.name}}/_next
       - name: Docker login
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'labs-')
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo ${GITHUB_TOKEN} | docker login ghcr.io --username ${GITHUB_REPOSITORY} --password-stdin
       - name: Bygg og push Docker image
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'labs-')
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
         run: |
           docker build . -f Dockerfile -t ${{ steps.lag-image.outputs.image }}
           docker push ${{ steps.lag-image.outputs.image }}
@@ -172,48 +168,48 @@ jobs:
       app: ${{ inputs.app }}
     secrets: inherit
 
-  deploy-branch-til-labs-gcp:
-    if: startsWith(github.ref_name, 'labs-')
-    name: Deploy branch til labs-gcp
+  deploy-demo-branch-til-dev-gcp:
+    if: startsWith(github.ref_name, 'demo-')
+    name: Deploy demo branch til dev-gcp
     needs: build-and-publish
     runs-on: ubuntu-latest
     env:
-      LABS_APPNAME: ${{ inputs.app }}-${{ github.ref_name }}
+      DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v3
-      - name: Deploy branch til labs-gcp
+      - name: Deploy branch til dev-gcp
         uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: labs-gcp
+          CLUSTER: dev-gcp
           DEPLOY_SERVER: deploy.nais.io:443
-          RESOURCE: nais/app/labs.yaml
+          RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
-          VAR: appname=${{ env.LABS_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.LABS_APPNAME }}.labs.nais.io/
+          VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_APPNAME }}.ekstern.dev.nav.no/${{inputs.base-path}}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_MESSAGE: 'Ny versjon av ${{ inputs.app }} ute i labs :rocket: https://${{ env.LABS_APPNAME }}.labs.nais.io/${{inputs.base-path}}'
+          SLACK_MESSAGE: 'Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_APPNAME }}.ekstern.dev.nav.no/${{inputs.base-path}}'
           SLACK_TITLE: ${{ github.ref_name }}
-          SLACK_USERNAME: Labs deploy
+          SLACK_USERNAME: Demo deploy
           SLACK_ICON: ':lab_coat:'
           SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
 
-  deploy-til-labs-gcp:
+  deploy-demo-til-dev-gcp:
     if: github.ref_name == 'master'
-    name: Deploy til labs-gcp
+    name: Deploy til dev-gcp
     needs: [build-and-publish, cypress]
-    concurrency: deploy-til-labs-gcp
+    concurrency: deploy-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Deploy til labs-gcp
+      - name: Deploy til dev-gcp
         uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: labs-gcp
+          CLUSTER: dev-gcp
           DEPLOY_SERVER: deploy.nais.io:443
-          RESOURCE: nais/app/labs.yaml
+          RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.build-and-publish.outputs.image }}
-          VAR: appname=${{ inputs.app }},replicas=1,branchState=alive,ingress=https://${{ inputs.labs-ingress }}.labs.nais.io
+          VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://www.demo.ekstern.dev.nav.no/${{inputs.base-path}}
