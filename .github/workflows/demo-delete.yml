@@ -17,13 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.event.ref }}
+      DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v3
-      - name: Skaler ned app i dev-gcp
+      - name: Skaler ned demo app i dev-gcp
         uses: nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
           IMAGE: ghcr.io/navikt/${{ inputs.app }}:latest
-          VAR: appname=${{ env.DEMO_APPNAME }},replicas=0,branchState=deleted,ingress=https://${{ env.DEMO_APPNAME }}.ekstern.dev.nav.no/${{inputs.base-path}}
+          VAR: appname=${{ env.DEMO_APPNAME }},replicas=0,branchState=deleted,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}
