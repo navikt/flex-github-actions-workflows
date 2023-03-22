@@ -190,7 +190,7 @@ jobs:
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_MESSAGE: 'Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_APPNAME }}.ekstern.dev.nav.no/${{inputs.base-path}}'
+          SLACK_MESSAGE: 'Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}'
           SLACK_TITLE: ${{ github.ref_name }}
           SLACK_USERNAME: Demo deploy
           SLACK_ICON: ':lab_coat:'
