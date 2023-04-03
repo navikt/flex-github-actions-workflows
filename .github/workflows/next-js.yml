@@ -28,7 +28,7 @@ jobs:
     name: Bygg, test og publiser docker image
     runs-on: ubuntu-latest
     outputs:
-      image: ${{ steps.lag-image.outputs.image }}
+      image: ${{ steps.docker-build-push.outputs.image }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -47,13 +47,6 @@ jobs:
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
-      - name: Generer image
-        id: lag-image
-        run: |
-          TIME=$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M)
-          COMMIT=$(git rev-parse --short=8 HEAD)
-          VERSION=$TIME-$COMMIT
-          echo "image=ghcr.io/navikt/${{ inputs.app }}:$VERSION" >> $GITHUB_OUTPUT
       - name: Install npm dependencies
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,23 +67,14 @@ jobs:
           SENTRY_ORG: nav
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      - name: Last opp static files til NAV CDN
-        uses: navikt/frontend/actions/cdn-upload/v1@main
+      - name: docker-build-push
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
         with:
-          cdn-team-name: flex
-          source: ./.next/static
-          destination: /${{github.event.repository.name}}/_next
-      - name: Docker login
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo ${GITHUB_TOKEN} | docker login ghcr.io --username ${GITHUB_REPOSITORY} --password-stdin
-      - name: Bygg og push Docker image
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
-        run: |
-          docker build . -f Dockerfile -t ${{ steps.lag-image.outputs.image }}
-          docker push ${{ steps.lag-image.outputs.image }}
+          team: flex
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
       - name: cache workspace
         uses: actions/cache@v3
         with:
@@ -148,20 +132,24 @@ jobs:
           SLACK_TITLE: 'Auda :alert:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
-  snyk-npm:
+  cdn-upload:
     needs: build-and-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-npm.yml@master
-    secrets: inherit
-
-  snyk-docker:
-    needs: build-and-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-docker.yml@master
-    with:
-      image: ${{ needs.build-and-publish.outputs.image }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: Last opp static files til NAV CDN
+        uses: navikt/frontend/actions/cdn-upload/v1@main
+        with:
+          cdn-team-name: flex
+          source: ./.next/static
+          destination: /${{github.event.repository.name}}/_next
 
   nais-deploy:
-    needs: [build-and-publish, cypress]
+    needs: [build-and-publish, cypress, cdn-upload]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
     with:
       image: ${{ needs.build-and-publish.outputs.image }}
@@ -171,7 +159,7 @@ jobs:
   deploy-demo-branch-til-dev-gcp:
     if: startsWith(github.ref_name, 'demo-')
     name: Deploy demo branch til dev-gcp
-    needs: build-and-publish
+    needs: [build-and-publish, cdn-upload]
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
@@ -199,7 +187,7 @@ jobs:
   deploy-demo-til-dev-gcp:
     if: github.ref_name == 'master'
     name: Deploy demo til dev-gcp
-    needs: [build-and-publish, cypress]
+    needs: [build-and-publish, cypress, cdn-upload]
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
