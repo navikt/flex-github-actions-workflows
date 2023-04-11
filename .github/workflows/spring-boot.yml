@@ -19,10 +19,13 @@ on:
 
 jobs:
   build-and-publish:
+    permissions:
+        contents: "read"
+        id-token: "write"
     name: Bygg, test og publiser docker image
     runs-on: ubuntu-latest
     outputs:
-      image: ${{ steps.lag-image.outputs.image }}
+      image: ${{ steps.docker-build-push.outputs.image }}
     env:
       ORG_GRADLE_PROJECT_githubUser: x-access-token
       ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
@@ -34,13 +37,6 @@ jobs:
           java-version: '17'
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Generer image
-        id: lag-image
-        run: |
-          TIME=$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M)
-          COMMIT=$(git rev-parse --short=8 HEAD)
-          VERSION=$TIME-$COMMIT
-          echo "image=ghcr.io/navikt/${{ inputs.app }}:$VERSION" >> $GITHUB_OUTPUT
       - name: Gradle wrapper validation
         uses: gradle/wrapper-validation-action@v1
       - uses: actions/cache@v3
@@ -64,19 +60,14 @@ jobs:
       - name: Build jar
         run: ./gradlew bootJar -x test
 
-      - name: Docker login
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+      - name: docker-build-push
         if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Bygg og publiser Docker image
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
-        run: |
-          docker build -t ${{ steps.lag-image.outputs.image }} .
-          docker push ${{ steps.lag-image.outputs.image }}
+          team: flex
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
@@ -116,14 +107,6 @@ jobs:
         with:
           command: test
           args: --org=flex-kmy --severity-threshold=critical --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
-
-
-  snyk-docker:
-    needs: build-and-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/snyk-docker.yml@master
-    with:
-      image: ${{ needs.build-and-publish.outputs.image }}
-    secrets: inherit
 
   nais-deploy:
     needs: build-and-publish
