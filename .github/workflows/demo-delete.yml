@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.event.ref }}
-      DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
+      DEMO_INGRESS: ${{ inputs.app }}-${{ github.event.ref }}
     steps:
       - uses: actions/checkout@v3
       - name: Skaler ned demo app i dev-gcp
