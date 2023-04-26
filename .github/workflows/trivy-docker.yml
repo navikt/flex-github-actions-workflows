@@ -8,7 +8,7 @@ on:
 
 
 jobs:
-  snyk-test-docker:
+  trivy-test-docker:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     runs-on: ubuntu-latest
     steps:
