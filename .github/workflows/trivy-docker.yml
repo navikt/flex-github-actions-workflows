@@ -9,7 +9,7 @@ on:
 
 jobs:
   snyk-test-docker:
-    if: github.ref_name == 'testbranch' || startsWith(github.ref_name, 'dev-')
+    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     runs-on: ubuntu-latest
     steps:
       - uses: nais/login@v0
@@ -49,7 +49,7 @@ jobs:
         if: failure() && github.ref_name == 'master'
         env:
           SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på master
+          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på master pga trivy os og library scan
           SLACK_TITLE: 'Auda :alert:'
 
       

@@ -78,36 +78,14 @@ jobs:
             SLACK_TITLE: ':broken_heart:'
             SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
-  snyk-monitor-gradle:
-    if: github.ref_name == 'master'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/gradle-jdk17@master
-        env:
-          ORG_GRADLE_PROJECT_githubUser: x-access-token
-          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-          args: --org=flex-kmy --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
+  trivy-docker:
+    needs: build-and-publish
+    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+    secrets: inherit
 
-  snyk-test-gradle:
-    if: startsWith(github.ref_name, 'dependabot') == false # Dependabot har ikke SNYK_TOKEN
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/gradle-jdk17@master
-        env:
-          ORG_GRADLE_PROJECT_githubUser: x-access-token
-          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
-          args: --org=flex-kmy --severity-threshold=critical --project-name=${{ github.repository }} --remote-repo-url=https://github.com/${{ github.repository }}.git
-
+  
   nais-deploy:
     needs: build-and-publish
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
