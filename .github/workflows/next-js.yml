@@ -132,6 +132,14 @@ jobs:
           SLACK_TITLE: 'Auda :alert:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
+  trivy-docker:
+    needs: build-and-publish
+    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
+    with:
+      image: ${{ needs.build-and-publish.outputs.image }}
+    secrets: inherit
+
+      
   cdn-upload:
     needs: build-and-publish
     runs-on: ubuntu-latest
