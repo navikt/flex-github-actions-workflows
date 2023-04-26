@@ -51,7 +51,7 @@ jobs:
         if: failure() && github.ref_name == 'master'
         env:
           SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på master pga trivy os og library scan
+          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på master pga. critical eller high severity sårbarhet avdekket i trivy scan
           SLACK_TITLE: 'Auda :alert:'
 
       
