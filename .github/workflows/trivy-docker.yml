@@ -9,11 +9,6 @@ on:
 
 jobs:
   trivy-test-docker:
-    permissions:
-      packages: 'write'
-      contents: 'read'
-      id-token: 'write'
-      security-events: write
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     runs-on: ubuntu-latest
     steps:
