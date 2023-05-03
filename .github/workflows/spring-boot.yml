@@ -79,6 +79,9 @@ jobs:
             SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
   trivy-docker:
+    permissions:
+      id-token: 'write'
+      security-events: 'write'
     needs: build-and-publish
     uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
     with:
