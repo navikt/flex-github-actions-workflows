@@ -28,7 +28,7 @@ jobs:
     permissions:
       packages: 'read'
       contents: 'read'
-      id-token: 'write'  
+      id-token: 'write'
     name: Bygg, test og publiser docker image
     runs-on: ubuntu-latest
     outputs:
@@ -149,7 +149,7 @@ jobs:
   cdn-upload:
     permissions:
        contents: 'read'
-       id-token: 'write'  
+       id-token: 'write'
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
@@ -174,7 +174,7 @@ jobs:
     secrets: inherit
 
   deploy-demo-branch-til-dev-gcp:
-    if: startsWith(github.ref_name, 'demo-')
+    if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
     name: Deploy demo branch til dev-gcp
     needs: [build-and-publish, cdn-upload]
     runs-on: ubuntu-latest
