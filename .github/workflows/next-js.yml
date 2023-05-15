@@ -92,6 +92,14 @@ jobs:
           SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på master
           SLACK_TITLE: 'Auda :alert:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+      - name: Slack Notification Dependabot
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
+        if: failure() && github.actor == 'dependabot[bot]'
+        env:
+          SLACK_COLOR: '#ffa500'
+          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler i dependabot PR
+          SLACK_TITLE: 'Auda :dependabot:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
   cypress:
     needs: build-and-publish
@@ -134,6 +142,14 @@ jobs:
           SLACK_COLOR: '#ff0000'
           SLACK_MESSAGE: ${{ github.event.repository.name }} cypress tester feiler på master
           SLACK_TITLE: 'Auda :alert:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+      - name: Slack Notification ved dependabot feil
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
+        if: failure() && github.actor == 'dependabot[bot]'
+        env:
+          SLACK_COLOR: '#ffa500'
+          SLACK_MESSAGE: ${{ github.event.repository.name }} cypress tester i dependabot PR
+          SLACK_TITLE: 'Auda :dependabot:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
   trivy-docker:
