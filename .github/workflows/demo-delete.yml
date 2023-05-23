@@ -12,7 +12,7 @@ on:
 
 jobs:
   delete-demo-app:
-    if: startsWith(github.event.ref, 'demo-') || startsWith(github.ref_name, 'dev-')
+    if: startsWith(github.event.ref, 'demo-') || startsWith(github.event.ref, 'dev-')
     name: Delete demo branch dev-gcp
     runs-on: ubuntu-latest
     env:
