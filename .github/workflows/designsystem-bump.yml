@@ -1,0 +1,93 @@
+name: Oppgradere designsystemet
+
+on:
+  workflow_call:
+
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+
+      - name: Store current versions
+        id: store-versions
+        run: |
+          node -e "
+          const fs = require('fs');
+          const packageJson = require('./package.json');
+          const dependencies = {...packageJson.dependencies, ...packageJson.devDependencies};
+          const versions = {};
+          for (const [pkg, version] of Object.entries(dependencies)) {
+            if (pkg.startsWith('@navikt/aksel') || pkg.startsWith('@navikt/ds')) {
+              versions[pkg] = version;
+            }
+          }
+          fs.writeFileSync('versions.json', JSON.stringify(versions));
+          "
+
+
+      - name: Upgrade dependencies
+        run: npx npm-check-updates '@navikt/aksel*' '@navikt/ds*' -u && npm install
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify same version, major upgrade, and set output
+        id: verify-version
+        run: |
+          node -e "
+          const fs = require('fs');
+          const packageJson = require('./package.json');
+          const dependencies = {...packageJson.dependencies, ...packageJson.devDependencies};
+          const originalVersions = JSON.parse(fs.readFileSync('versions.json', 'utf-8'));
+          let isMajor = false;
+          for (const [pkg, version] of Object.entries(dependencies)) {
+          if (pkg.startsWith('@navikt/aksel') || pkg.startsWith('@navikt/ds')) {
+           const majorVersion = parseInt(version.split('.')[0], 10);
+           const originalMajorVersion = parseInt(originalVersions[pkg].split('.')[0], 10);
+           if (majorVersion > originalMajorVersion) {
+             isMajor = true;
+             break;
+           }
+          }
+          }
+          "
+      - run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'github-action@github.com'
+      - run: git status
+      - run: git add package.json package-lock.json
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --staged --quiet; then
+            echo "No changes in dependencies. Exiting."
+            exit 1
+          fi
+      - name: Lag PR
+        run: |
+          git checkout -b demo-designsystem-${{env.SHORT_SHA}}
+          git commit -m "Upgraded dependencies"
+          git push --set-upstream origin demo-designsystem-${{env.SHORT_SHA}}
+          pr_number=$(gh pr create --title "Upgraded Dependencies" --body "Automated changes by GitHub action" --base master | grep -oP 'github.com/.+/pull/\K[0-9]+')
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Trigg workflow
+        run: gh workflow run workflow.yml --ref demo-designsystem-${{env.SHORT_SHA}}
+        env:
+          GH_TOKEN: ${{ github.token }}
