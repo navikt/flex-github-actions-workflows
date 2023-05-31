@@ -12,6 +12,7 @@ jobs:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     runs-on: ubuntu-latest
     steps:
+      - run: touch me
       - uses: nais/login@v0
         with:
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
@@ -40,12 +41,12 @@ jobs:
         with:
           image-ref: ${{ inputs.image }}
           format: 'table'
-          exit-code: '1' 
+          exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os'
           severity: 'CRITICAL,HIGH'
           scanners: 'vuln'
-        
+
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
         if: failure() && github.ref_name == 'master'
@@ -57,4 +58,4 @@ jobs:
 
 
 
-      
+
