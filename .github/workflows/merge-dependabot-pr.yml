@@ -16,9 +16,12 @@ jobs:
 
             const filtrert = pulls.data
                 .filter((it) => it.state == 'open')
-                .filter((it) => it.user?.login == 'dependabot[bot]')
+                .filter((it) => !it.head.repo.fork)
+                .filter((it) => it.labels.some((l) => l.name == 'automerge'))
                 .filter((it) => {
                     const prCreated = new Date(it.created_at)
+                    const isDesignsystem = it.labels.some((l) => l.name == 'designsystemet');
+                    if (isDesignsystem) return true;
                     if (it.title.includes('navikt')) {
                       const twoHours = 2 * 60 * 60 * 1000
                       return prCreated.getTime() < Date.now() - twoHours
@@ -26,7 +29,13 @@ jobs:
                     const oneWeek = 7 * 24 * 60 * 60 * 1000
                     return prCreated.getTime() < Date.now() - oneWeek
                 })
-                .filter((it) => it.labels.some((l) => l.name == 'automerge'))
+                .sort((a, b) => {
+                   const aIsDesignsystem = a.labels.some((l) => l.name == 'designsystemet');
+                   const bIsDesignsystem = b.labels.some((l) => l.name == 'designsystemet');
+                   if (aIsDesignsystem && !bIsDesignsystem) return -1;
+                   if (!aIsDesignsystem && bIsDesignsystem) return 1;
+                   return 0;
+                })
                 .map((it) => {
                     return {
                         title: it.title,
