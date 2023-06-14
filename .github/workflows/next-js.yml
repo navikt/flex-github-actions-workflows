@@ -21,7 +21,7 @@ on:
         type: boolean
     outputs:
       image:
-        value: ${{ jobs.build-and-publish.outputs.image }}
+        value: ${{ jobs.gar-publish.outputs.image }}
 
 jobs:
   build-and-publish:
@@ -31,8 +31,6 @@ jobs:
       id-token: 'write'
     name: Bygg, test og publiser docker image
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.docker-build-push.outputs.image }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -71,14 +69,6 @@ jobs:
           SENTRY_ORG: nav
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      - name: docker-build-push
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
-        uses: nais/docker-build-push@v0
-        id: docker-build-push
-        with:
-          team: flex
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
       - name: cache workspace
         uses: actions/cache@v3
         with:
@@ -140,10 +130,10 @@ jobs:
     permissions:
       id-token: 'write'
       security-events: 'write'
-    needs: build-and-publish
+    needs: gar-publish
     uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
     with:
-      image: ${{ needs.build-and-publish.outputs.image }}
+      image: ${{ needs.gar-publish.outputs.image }}
     secrets: inherit
 
   cdn-upload:
@@ -165,18 +155,43 @@ jobs:
           source: ./.next/static
           destination: /${{github.event.repository.name}}/_next
 
+  gar-publish:
+    permissions:
+      packages: 'read'
+      contents: 'read'
+      id-token: 'write'
+    name: gar-publish
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: docker-build-push
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: flex
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
   nais-deploy:
-    needs: [build-and-publish, cypress, cdn-upload]
+    needs: [build-and-publish, cypress, cdn-upload, gar-publish]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
     with:
-      image: ${{ needs.build-and-publish.outputs.image }}
+      image: ${{ needs.gar-publish.outputs.image }}
       app: ${{ inputs.app }}
     secrets: inherit
 
   deploy-demo-branch-til-dev-gcp:
     if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
     name: Deploy demo branch til dev-gcp
-    needs: [build-and-publish, cdn-upload]
+    needs: [build-and-publish, cdn-upload, gar-publish]
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
@@ -189,7 +204,7 @@ jobs:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
-          IMAGE: ${{ needs.build-and-publish.outputs.image }}
+          IMAGE: ${{ needs.gar-publish.outputs.image }}
           VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
@@ -215,5 +230,5 @@ jobs:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
-          IMAGE: ${{ needs.build-and-publish.outputs.image }}
+          IMAGE: ${{ needs.gar-publish.outputs.image }}
           VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
