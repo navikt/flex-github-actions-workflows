@@ -53,22 +53,8 @@ jobs:
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci
-      - name: Run prettier
-        run: npm run prettier:check
-      - name: Run lint
-        run: npm run lint
-      - name: Run tests
-        run: npm run test:ci
-      - name: Enable sentry i master
-        if: github.ref_name == 'master' && inputs.sentry-enabled == true
-        run: echo "ENABLE_SENTRY=true" >> $GITHUB_ENV
       - name: Build application
         run: npm run build
-        env:
-          SENTRY_URL: https://sentry.gc.nav.no/
-          SENTRY_ORG: nav
-          SENTRY_PROJECT: ${{ inputs.sentry-project }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - name: cache workspace
         uses: actions/cache@v3
         with:
@@ -180,8 +166,36 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
+  lint:
+    name: lint
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: Run prettier
+        run: npm run prettier:check
+      - name: Run lint
+        run: npm run lint
+
+  unit-test:
+    name: unit-test
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: Run tests
+        run: npm run test:ci
+
   nais-deploy:
-    needs: [build-and-publish, cypress, cdn-upload, gar-publish]
+    needs: [build-and-publish, cypress, cdn-upload, gar-publish, unit-test]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
     with:
       image: ${{ needs.gar-publish.outputs.image }}
