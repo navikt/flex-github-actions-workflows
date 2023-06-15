@@ -233,7 +233,7 @@ jobs:
   deploy-demo-til-dev-gcp:
     if: github.ref_name == 'master'
     name: Deploy demo til dev-gcp
-    needs: [build-and-publish, cypress, cdn-upload]
+    needs: [build-and-publish, cypress, cdn-upload, gar-publish]
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
