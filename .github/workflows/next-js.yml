@@ -157,6 +157,8 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
+      - name: Try to fail
+        run: exit 1
       - name: docker-build-push
         if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
         uses: nais/docker-build-push@v0
