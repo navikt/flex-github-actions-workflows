@@ -11,7 +11,7 @@ jobs:
           script: |
             const today = new Date();
             const sommerStart = new Date(today.getFullYear(), 5, 20);
-            const sommerSlutt = new Date(today.getFullYear(), 7, 10);
+            const sommerSlutt = new Date(today.getFullYear(), 7, 7);
             const julStart = new Date(today.getFullYear(), 11, 20);
             const julSlutt = new Date(today.getFullYear(), 11, 31);
             const nyttaarStart = new Date(today.getFullYear(), 0, 1);
@@ -34,21 +34,12 @@ jobs:
                 .filter((it) => it.labels.some((l) => l.name == 'automerge'))
                 .filter((it) => {
                     const prCreated = new Date(it.created_at)
-                    const isDesignsystem = it.labels.some((l) => l.name == 'designsystemet');
-                    if (isDesignsystem) return true;
-                    if (it.title.includes('navikt')) {
-                      const twoHours = 2 * 60 * 60 * 1000
-                      return prCreated.getTime() < Date.now() - twoHours
+                    if (it.title.includes('navikt') || it.title.includes('aksel')) {
+                      const twoDays = 2 * 60 * 60 * 1000
+                      return prCreated.getTime() < Date.now() - twoDays
                     }
                     const oneWeek = 7 * 24 * 60 * 60 * 1000
                     return prCreated.getTime() < Date.now() - oneWeek
-                })
-                .sort((a, b) => {
-                   const aIsDesignsystem = a.labels.some((l) => l.name == 'designsystemet');
-                   const bIsDesignsystem = b.labels.some((l) => l.name == 'designsystemet');
-                   if (aIsDesignsystem && !bIsDesignsystem) return -1;
-                   if (!aIsDesignsystem && bIsDesignsystem) return 1;
-                   return 0;
                 })
                 .map((it) => {
                     return {
