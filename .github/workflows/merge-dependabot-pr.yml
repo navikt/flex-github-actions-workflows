@@ -17,6 +17,16 @@ jobs:
             const nyttaarStart = new Date(today.getFullYear(), 0, 1);
             const nyttaarSlutt = new Date(today.getFullYear(), 0, 5);
 
+            // Opprett en ny liste for PRer som ikke er foran.
+            const prNotAheadList = [];
+
+            // Hent siste commiten i master-branchen.
+            const masterCommitResponse = await github.request('GET /repos/{owner}/{repo}/commits/master', {
+               owner: context.repo.owner,
+                repo: context.repo.repo,
+             });
+            const masterLatestCommitSha = masterCommitResponse.data.sha;
+
             if ((today >= sommerStart && today <= sommerSlutt) || (today >= julStart && today <= julSlutt) || (today >= nyttaarStart && today <= nyttaarSlutt)) {
                 console.log('Skriptet kjører ikke i ferier');
                 return;
@@ -47,6 +57,28 @@ jobs:
                         number: it.number,
 
                     }
+                })
+                .filter(async (it) => {
+                   const prLastCommit = it.head.sha;
+
+                   if (prLastCommit === masterLatestCommitSha) {
+                      prNotAheadList.push(it);  // Legg PRen til vår liste hvis den ikke er foran.
+                      return false;
+                   }
+
+                    const comparison = await github.request('GET /repos/{owner}/{repo}/compare/{base}...{head}', {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    base: masterLatestCommitSha,
+                    head: prLastCommit,
+                 });
+
+                 if (comparison.data.status !== 'ahead') {
+                    prNotAheadList.push(it);  // Legg PRen til vår liste hvis den ikke er foran.
+                    return false;
+                 }
+
+                return true;  // Hvis PRen er foran, beholder vi den i listen vår.
                 })
                 .map(async (it) => {
                     const QUERY = `query($owner: String!, $repo: String!, $pull_number: Int!) {
@@ -118,4 +150,13 @@ jobs:
                 )
             } else {
                 console.log('Ingen PRer å merge')
+            }
+            // Etter filtrering, legg til en kommentar til PRer som ikke er foran.
+            for (const pr of prNotAheadList) {
+              await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+                 owner: context.repo.owner,
+                 repo: context.repo.repo,
+                 issue_number: pr.number,  // GitHub behandler PR-nummer som issue-nummer for kommentar-APIet.
+                 body: '@dependabot rebase'
+              });
             }
