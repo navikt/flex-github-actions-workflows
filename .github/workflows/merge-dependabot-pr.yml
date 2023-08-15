@@ -17,15 +17,9 @@ jobs:
             const nyttaarStart = new Date(today.getFullYear(), 0, 1);
             const nyttaarSlutt = new Date(today.getFullYear(), 0, 5);
 
-            // Opprett en ny liste for PRer som ikke er foran.
+            // Opprett en liste for PRer som ikke er foran.
             const prNotAheadList = [];
 
-            // Hent siste commiten i master-branchen.
-            const masterCommitResponse = await github.request('GET /repos/{owner}/{repo}/commits/master', {
-               owner: context.repo.owner,
-                repo: context.repo.repo,
-             });
-            const masterLatestCommitSha = masterCommitResponse.data.sha;
 
             if ((today >= sommerStart && today <= sommerSlutt) || (today >= julStart && today <= julSlutt) || (today >= nyttaarStart && today <= nyttaarSlutt)) {
                 console.log('Skriptet kjører ikke i ferier');
@@ -59,26 +53,22 @@ jobs:
                     }
                 })
                 .filter(async (it) => {
-                   const prLastCommit = it.head.sha;
+                  const prLastCommit = it.head.sha;
 
-                   if (prLastCommit === masterLatestCommitSha) {
-                      prNotAheadList.push(it);  // Legg PRen til vår liste hvis den ikke er foran.
-                      return false;
-                   }
-
-                    const comparison = await github.request('GET /repos/{owner}/{repo}/compare/{base}...{head}', {
+                  const comparison = await github.request('GET /repos/{owner}/{repo}/compare/{base}...{head}', {
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    base: masterLatestCommitSha,
+                    base: "master",
                     head: prLastCommit,
-                 });
+                   });
 
-                 if (comparison.data.status !== 'ahead') {
-                    prNotAheadList.push(it);  // Legg PRen til vår liste hvis den ikke er foran.
+                  if (comparison.data.status === "behind" || comparison.data.behind_by > 0) {
+                    prNotAheadList.push(it);  // Legg PRen til vår liste hvis den er bak.
+                    console.log("pr.number: " + it.number + " er bak master med " + comparison.data.behind_by + " commits");
                     return false;
-                 }
+                   }
 
-                return true;  // Hvis PRen er foran, beholder vi den i listen vår.
+                  return true;  // Hvis PRen er foran eller lik master, beholder vi den i listen vår.
                 })
                 .map(async (it) => {
                     const QUERY = `query($owner: String!, $repo: String!, $pull_number: Int!) {
