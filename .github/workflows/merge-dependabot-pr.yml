@@ -17,8 +17,6 @@ jobs:
             const nyttaarStart = new Date(today.getFullYear(), 0, 1);
             const nyttaarSlutt = new Date(today.getFullYear(), 0, 5);
 
-            // Opprett en liste for PRer som ikke er foran.
-            const prNotAheadList = [];
 
 
             if ((today >= sommerStart && today <= sommerSlutt) || (today >= julStart && today <= julSlutt) || (today >= nyttaarStart && today <= nyttaarSlutt)) {
@@ -51,24 +49,6 @@ jobs:
                         number: it.number,
 
                     }
-                })
-                .filter(async (it) => {
-                  const prLastCommit = it.head.sha;
-
-                  const comparison = await github.request('GET /repos/{owner}/{repo}/compare/{base}...{head}', {
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    base: "master",
-                    head: prLastCommit,
-                   });
-
-                  if (comparison.data.status === "behind" || comparison.data.behind_by > 0) {
-                    prNotAheadList.push(it);  // Legg PRen til vår liste hvis den er bak.
-                    console.log("pr.number: " + it.number + " er bak master med " + comparison.data.behind_by + " commits");
-                    return false;
-                   }
-
-                  return true;  // Hvis PRen er foran eller lik master, beholder vi den i listen vår.
                 })
                 .map(async (it) => {
                     const QUERY = `query($owner: String!, $repo: String!, $pull_number: Int!) {
@@ -117,7 +97,21 @@ jobs:
                         mergeable: prdata.data.mergeable
                     }
                 })
-            const medMergeable = await Promise.all(medMergeablePromise)
+
+            // Opprett en liste for PRer som ikke er mergeable.
+            const prNotAheadList = [];
+
+            const medMergeable = (await Promise.all(medMergeablePromise))
+                .filter((it) => {
+
+                  if (!it.mergeable) {
+                    prNotAheadList.push(it);  // Legg PRen til vår liste hvis den er bak.
+                    console.log("pr: " + it.title + " er ikke mergeable " + it.mergeable);
+                    return false;
+                   }
+
+                  return true;  // Hvis PRen er foran eller lik master, beholder vi den i listen vår.
+                })
             if (medMergeable.length > 0) {
                 const pr = medMergeable[0]
                 console.log('Merger PR', pr.title)
@@ -143,6 +137,8 @@ jobs:
             }
             // Etter filtrering, legg til en kommentar til PRer som ikke er foran.
             for (const pr of prNotAheadList) {
+               console.log("Ber  " + pr.title + " om å rebase");
+
               await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
                  owner: context.repo.owner,
                  repo: context.repo.repo,
