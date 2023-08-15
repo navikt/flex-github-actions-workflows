@@ -81,7 +81,7 @@ jobs:
                 })
 
             const allePrs = await Promise.all(filtrert)
-            const medMergeablePromise = allePrs
+            const mergeablePromise = allePrs
                 .filter((it) => it.checksOk)
                 .map(async (it) => {
                     const prdata = await github.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
@@ -95,9 +95,14 @@ jobs:
                         mergeable: prdata.data.mergeable
                     }
                 })
-            const medMergeable = await Promise.all(medMergeablePromise)
-            if (medMergeable.length > 0) {
-                const pr = medMergeable[0]
+
+
+            const mergeable = (await Promise.all(mergeablePromise))
+                .filter((it) => {
+                  return it.mergeable;
+                })
+            if (mergeable.length > 0) {
+                const pr = mergeable[0]
                 console.log('Merger PR', pr.title)
                 await github.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
                     owner: context.repo.owner,
