@@ -4,8 +4,6 @@ on:
 
 jobs:
   merge-pullrequests:
-    permissions:
-      contents: "write"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v6
@@ -18,8 +16,6 @@ jobs:
             const julSlutt = new Date(today.getFullYear(), 11, 31);
             const nyttaarStart = new Date(today.getFullYear(), 0, 1);
             const nyttaarSlutt = new Date(today.getFullYear(), 0, 5);
-
-
 
             if ((today >= sommerStart && today <= sommerSlutt) || (today >= julStart && today <= julSlutt) || (today >= nyttaarStart && today <= nyttaarSlutt)) {
                 console.log('Skriptet kjører ikke i ferier');
@@ -85,7 +81,7 @@ jobs:
                 })
 
             const allePrs = await Promise.all(filtrert)
-            const medMergeablePromise = allePrs
+            const mergeablePromise = allePrs
                 .filter((it) => it.checksOk)
                 .map(async (it) => {
                     const prdata = await github.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
@@ -100,22 +96,13 @@ jobs:
                     }
                 })
 
-            // Opprett en liste for PRer som ikke er mergeable.
-            const prNotAheadList = [];
 
-            const medMergeable = (await Promise.all(medMergeablePromise))
+            const mergeable = (await Promise.all(mergeablePromise))
                 .filter((it) => {
-
-                  if (!it.mergeable) {
-                    prNotAheadList.push(it);  // Legg PRen til vår liste hvis den er bak.
-                    console.log("pr: " + it.title + " er ikke mergeable " + it.mergeable);
-                    return false;
-                   }
-
-                  return true;  // Hvis PRen er foran eller lik master, beholder vi den i listen vår.
+                  return it.mergeable;
                 })
-            if (medMergeable.length > 0) {
-                const pr = medMergeable[0]
+            if (mergeable.length > 0) {
+                const pr = mergeable[0]
                 console.log('Merger PR', pr.title)
                 await github.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
                     owner: context.repo.owner,
@@ -136,15 +123,4 @@ jobs:
                 )
             } else {
                 console.log('Ingen PRer å merge')
-            }
-            // Etter filtrering, legg til en kommentar til PRer som ikke er foran.
-            for (const pr of prNotAheadList) {
-               console.log("Ber  " + pr.title + " om å rebase");
-
-              await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
-                 owner: context.repo.owner,
-                 repo: context.repo.repo,
-                 issue_number: pr.number,  // GitHub behandler PR-nummer som issue-nummer for kommentar-APIet.
-                 body: '@dependabot rebase'
-              });
             }
