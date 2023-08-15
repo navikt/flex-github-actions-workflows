@@ -4,6 +4,8 @@ on:
 
 jobs:
   merge-pullrequests:
+    permissions:
+      contents: "write"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v6
