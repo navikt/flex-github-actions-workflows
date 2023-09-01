@@ -22,6 +22,8 @@ jobs:
     permissions:
         contents: "read"
         id-token: "write"
+        packages: write
+        security-events: write
     name: Bygg, test og publiser docker image
     runs-on: ubuntu-latest
     outputs:
@@ -88,7 +90,7 @@ jobs:
       image: ${{ needs.build-and-publish.outputs.image }}
     secrets: inherit
 
-  
+
   nais-deploy:
     needs: build-and-publish
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
