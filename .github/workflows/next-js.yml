@@ -32,7 +32,7 @@ jobs:
     name: Bygg, test og publiser docker image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -211,7 +211,7 @@ jobs:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
       DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Deploy demo branch til dev-gcp
         uses: nais/deploy/actions/deploy@v1
         env:
@@ -237,7 +237,7 @@ jobs:
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Deploy til dev-gcp
         uses: nais/deploy/actions/deploy@v1
         env:
