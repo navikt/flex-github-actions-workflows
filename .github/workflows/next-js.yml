@@ -201,10 +201,6 @@ jobs:
       contents: read
       actions: read
       security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'javascript' ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -212,13 +208,13 @@ jobs:
         uses: github/codeql-action/init@v2
         with:
           queries: security-and-quality
-          languages: ${{ matrix.language }}
+          languages: 'javascript'
       - name: Autobuild
         uses: github/codeql-action/autobuild@v2
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
         with:
-          category: "/language:${{matrix.language}}"
+          category: "/language:javascript"
 
   nais-deploy:
     needs: [build-and-publish, cypress, cdn-upload, gar-publish, unit-test]
