@@ -195,6 +195,7 @@ jobs:
         run: npm run test:ci
 
   codeql-analyse:
+    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     name: codeql-analyse
     runs-on: ubuntu-latest
     permissions:
