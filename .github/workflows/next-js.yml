@@ -194,6 +194,29 @@ jobs:
       - name: Run tests
         run: npm run test:ci
 
+  codeql-analyse:
+    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+    name: codeql-analyse
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          queries: security-and-quality
+          languages: 'javascript'
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:javascript"
+
   nais-deploy:
     needs: [build-and-publish, cypress, cdn-upload, gar-publish, unit-test]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
