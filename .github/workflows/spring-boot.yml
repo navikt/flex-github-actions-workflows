@@ -88,7 +88,34 @@ jobs:
       image: ${{ needs.build-and-publish.outputs.image }}
     secrets: inherit
 
-  
+  codeql-analyse:
+    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+    name: CodeQL-analyse
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          queries: security-and-quality
+          languages: 'java'
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:java"
+
   nais-deploy:
     needs: build-and-publish
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
