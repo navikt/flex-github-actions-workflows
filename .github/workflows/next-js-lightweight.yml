@@ -1,0 +1,248 @@
+  next-js.yml# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js.yml%40master%22+NOT+is%3Aarchived
+
+name: Next js
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: false
+        default: ${{ github.event.repository.name }}
+        type: string
+      base-path:
+        required: true
+        type: string
+      sentry-project:
+        required: false
+        default: ${{ github.event.repository.name }}
+        type: string
+      sentry-enabled:
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      image:
+        value: ${{ jobs.gar-publish.outputs.image }}
+
+jobs:
+  build-and-publish:
+    permissions:
+      packages: 'read'
+      contents: 'read'
+      id-token: 'write'
+    name: Bygg, test og publiser docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: next.js cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+      - name: Cache Cypress binary
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+      - name: Install npm dependencies
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm ci
+      - name: Build application
+        run: npm run build
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
+        if: failure() && github.ref_name == 'master'
+        env:
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på master
+          SLACK_TITLE: 'Auda :alert:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
+  cypress:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: [ 0, 1, 2, 3 ]
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: cache cypress binary
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+      - name: Kjør cypress
+        uses: cypress-io/github-action@v5.8.3
+        with:
+          start: npm run start-ingen-dekorator
+          wait-on: http://localhost:8080/${{inputs.base-path}}/api/internal/isAlive
+          config-file: cypress.config.ts
+          spec: cypress/e2e/run-${{ matrix.containers }}/**
+          install: false
+        env:
+          MOCK_BACKEND: 'true'
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+      - name: Slack Notification ved feil
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
+        if: failure() && github.ref_name == 'master'
+        env:
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: ${{ github.event.repository.name }} cypress tester feiler på master
+          SLACK_TITLE: 'Auda :alert:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
+  trivy-docker:
+    permissions:
+      id-token: 'write'
+      security-events: 'write'
+    needs: gar-publish
+    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
+    with:
+      image: ${{ needs.gar-publish.outputs.image }}
+    secrets: inherit
+
+  cdn-upload:
+    permissions:
+       contents: 'read'
+       id-token: 'write'
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: Last opp static files til NAV CDN
+        uses: navikt/frontend/actions/cdn-upload/v1@main
+        with:
+          cdn-team-name: flex
+          source: ./.next/static
+          destination: /${{github.event.repository.name}}/_next
+
+  gar-publish:
+    permissions:
+      packages: 'read'
+      contents: 'read'
+      id-token: 'write'
+    name: gar-publish
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: docker-build-push
+        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: flex
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
+  lint:
+    name: lint
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: Run prettier
+        run: npm run prettier:check
+      - name: Run lint
+        run: npm run lint
+
+  unit-test:
+    name: unit-test
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+      - name: Run tests
+        run: npm run test:ci
+
+  nais-deploy:
+    needs: [build-and-publish, cypress, cdn-upload, gar-publish, unit-test]
+    uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
+    with:
+      image: ${{ needs.gar-publish.outputs.image }}
+      app: ${{ inputs.app }}
+    secrets: inherit
+
+  deploy-demo-branch-til-dev-gcp:
+    if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
+    name: Deploy demo branch til dev-gcp
+    needs: [build-and-publish, cdn-upload, gar-publish]
+    runs-on: ubuntu-latest
+    env:
+      DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
+      DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy demo branch til dev-gcp
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: dev-gcp
+          RESOURCE: nais/app/demo.yaml
+          IMAGE: ${{ needs.gar-publish.outputs.image }}
+          VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@12e36fc18b0689399306c2e0b3e0f2978b7f1ee7
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_MESSAGE: 'Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}'
+          SLACK_TITLE: ${{ github.ref_name }}
+          SLACK_USERNAME: Demo deploy
+          SLACK_ICON: ':lab_coat:'
+          SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
+
+  deploy-demo-til-dev-gcp:
+    if: github.ref_name == 'master'
+    name: Deploy demo til dev-gcp
+    needs: [build-and-publish, cypress, cdn-upload, gar-publish]
+    concurrency: deploy-demo-til-dev-gcp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy til dev-gcp
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: dev-gcp
+          RESOURCE: nais/app/demo.yaml
+          IMAGE: ${{ needs.gar-publish.outputs.image }}
+          VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
