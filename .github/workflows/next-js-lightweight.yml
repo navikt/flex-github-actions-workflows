@@ -10,7 +10,7 @@
           type: string
       outputs:
         image:
-            value: ${{ jobs.build-and-publish.outputs.image }}  # Corrected line
+            value: ${{ jobs.build-and-publish.outputs.image }}
   jobs:
     build-and-publish:
       name: Bygg, test og push Docker image
@@ -51,10 +51,10 @@
       permissions:
         id-token: 'write'
         security-events: 'write'
-      needs: build-and-publish  # Correct this line
+      needs: build-and-publish
       uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
       with:
-        image: ${{ needs.build-and-publish.outputs.image }}  # Correct this line
+        image: ${{ needs.build-and-publish.outputs.image }}
       secrets: inherit
 
     codeql-analyse:
