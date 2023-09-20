@@ -1,0 +1,90 @@
+  # Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js-lightweight.yml%40master%22+NOT+is%3Aarchived
+
+  name: Next js
+  on:
+    workflow_call:
+      inputs:
+        app:
+          required: false
+          default: ${{ github.event.repository.name }}
+          type: string
+      outputs:
+        image:
+            value: ${{ jobs.build-and-publish.outputs.image }}
+  jobs:
+    build-and-publish:
+      name: Bygg, test og push Docker image
+      runs-on: ubuntu-latest
+      permissions:
+        packages: read
+        contents: read
+        id-token: write
+      outputs:
+        image: ${{ steps.docker-build-push.outputs.image }}
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+        - uses: actions/setup-node@v3
+          with:
+            node-version: 18
+            cache: 'npm'
+        - name: Install npm dependencies
+          run: npm ci
+          env:
+            NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: Run prettier
+          run: npm run prettier:check
+        - name: Run lint
+          run: npm run lint
+        - name: Build application
+          run: npm run build
+        - name: docker-build-push
+          if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+          uses: nais/docker-build-push@v0
+          id: docker-build-push
+          with:
+            team: flex
+            identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+            project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
+    trivy-docker:
+      permissions:
+        id-token: 'write'
+        security-events: 'write'
+      needs: build-and-publish
+      uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
+      with:
+        image: ${{ needs.build-and-publish.outputs.image }}
+      secrets: inherit
+
+    codeql-analyse:
+      if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+      name: codeql-analyse
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+        actions: read
+        security-events: write
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+        - name: Initialize CodeQL
+          uses: github/codeql-action/init@v2
+          with:
+            queries: security-and-quality
+            languages: 'javascript'
+        - name: Autobuild
+          uses: github/codeql-action/autobuild@v2
+        - name: Perform CodeQL Analysis
+          uses: github/codeql-action/analyze@v2
+          with:
+            category: "/language:javascript"
+
+    nais-deploy:
+      needs: build-and-publish
+      uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
+      with:
+        image: ${{ needs.build-and-publish.outputs.image }}
+        app: ${{ inputs.app }}
+      secrets: inherit
+
