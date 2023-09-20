@@ -1,4 +1,4 @@
-  # Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js.yml%40master%22+NOT+is%3Aarchived
+  # Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js-lightweight.yml%40master%22+NOT+is%3Aarchived
 
   name: Next js
   on:
