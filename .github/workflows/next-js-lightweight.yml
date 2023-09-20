@@ -8,17 +8,6 @@
           required: false
           default: ${{ github.event.repository.name }}
           type: string
-      #      base-path:
-      #        required: true
-      #        type: string
-      #      sentry-project:
-      #        required: false
-      #        default: ${{ github.event.repository.name }}
-      #        type: string
-      #      sentry-enabled:
-      #        required: false
-      #        default: true
-      #        type: boolean
       outputs:
         image:
             value: ${{ jobs.build-and-publish.outputs.image }}  # Corrected line
