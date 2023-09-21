@@ -13,7 +13,7 @@
             value: ${{ jobs.build-and-publish.outputs.image }}
   jobs:
     build-and-publish:
-      name: Bygg, test og push Docker image
+      name: Bygg, test og publiser docker image
       runs-on: ubuntu-latest
       permissions:
         packages: read
