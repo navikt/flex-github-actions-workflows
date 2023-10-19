@@ -22,7 +22,7 @@ jobs:
     permissions:
         contents: "read"
         id-token: "write"
-    name: Bygg, test og publiser docker image
+    name: Bygg og publiser
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.docker-build-push.outputs.image }}
@@ -51,11 +51,6 @@ jobs:
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-wrapper-
-      - name: Lint koden
-        run:  ./gradlew ktlintCheck
-
-      - name: Run tests
-        run:  ./gradlew test
 
       - name: Build jar
         run: ./gradlew bootJar -x test
@@ -77,6 +72,94 @@ jobs:
             SLACK_MESSAGE: ${{ inputs.app }} bygget feiler på master
             SLACK_TITLE: ':broken_heart:'
             SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
+  lint:
+    permissions:
+      contents: "read"
+      id-token: "write"
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      ORG_GRADLE_PROJECT_githubUser: x-access-token
+      ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Gradle wrapper validation
+        uses: gradle/wrapper-validation-action@v1
+      - uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-cache-${{ hashFiles('build.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-cache-
+      - uses: actions/cache@v3
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-wrapper-
+      - name: Lint koden
+        run:  ./gradlew ktlintCheck
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
+        if: failure() && github.ref_name == 'master'
+        env:
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: ${{ inputs.app }} linting feiler på master
+          SLACK_TITLE: ':broken_heart:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
+  test:
+    permissions:
+      contents: "read"
+      id-token: "write"
+    name: Test
+    runs-on: ubuntu-latest
+    env:
+      ORG_GRADLE_PROJECT_githubUser: x-access-token
+      ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Gradle wrapper validation
+        uses: gradle/wrapper-validation-action@v1
+      - uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-cache-${{ hashFiles('build.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-cache-
+      - uses: actions/cache@v3
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-wrapper-
+
+      - name: Run tests
+        run:  ./gradlew test
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
+        if: failure() && github.ref_name == 'master'
+        env:
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: ${{ inputs.app }} tester feiler på master
+          SLACK_TITLE: ':broken_heart:'
+          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
 
   trivy-docker:
     permissions:
@@ -117,7 +200,7 @@ jobs:
           category: "/language:java"
 
   nais-deploy:
-    needs: build-and-publish
+    needs: [build-and-publish,lint,test]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
     with:
       image: ${{ needs.build-and-publish.outputs.image }}
