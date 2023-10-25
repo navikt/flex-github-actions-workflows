@@ -23,8 +23,7 @@ on:
       dev-only:
         required: false
         default: false
-        type: boolean
-
+        type: string
 jobs:
   deploy-til-dev:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
@@ -44,7 +43,7 @@ jobs:
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
-    if: (github.ref_name == 'master') && (${{ inputs.dev-only }} == false)
+    if: github.ref_name == 'master' && ${{ inputs.dev-only }} == 'false'
     name: Deploy til prod
     runs-on: ubuntu-latest
     concurrency: deploy-${{ inputs.app }}-til-prod
