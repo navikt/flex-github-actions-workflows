@@ -8,6 +8,10 @@
           required: false
           default: ${{ github.event.repository.name }}
           type: string
+        dev-only:
+          required: false
+          default: false
+          type: boolean
       outputs:
         image:
             value: ${{ jobs.build-and-publish.outputs.image }}
@@ -82,9 +86,10 @@
 
     nais-deploy:
       needs: build-and-publish
-      uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
+      uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@dev-only-cluster
       with:
         image: ${{ needs.build-and-publish.outputs.image }}
         app: ${{ inputs.app }}
+        dev-only: ${{ inputs.dev-only }}
       secrets: inherit
 
