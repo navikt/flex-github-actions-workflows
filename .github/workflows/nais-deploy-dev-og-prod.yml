@@ -48,10 +48,6 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-${{ inputs.app }}-til-prod
     steps:
-      - name: Print values
-        run: |
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Dev-only: ${{ inputs.dev-only }}"
       - name: Checkout code
         uses: actions/checkout@v4
       - uses: nais/deploy/actions/deploy@v1

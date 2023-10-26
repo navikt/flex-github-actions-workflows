@@ -196,7 +196,7 @@ jobs:
 
   nais-deploy:
     needs: [build-and-publish,lint,test]
-    uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@dev-only
+    uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
     with:
       image: ${{ needs.build-and-publish.outputs.image }}
       app: ${{ inputs.app }}
