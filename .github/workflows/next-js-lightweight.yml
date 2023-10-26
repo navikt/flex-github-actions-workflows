@@ -86,7 +86,7 @@
 
     nais-deploy:
       needs: build-and-publish
-      uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@dev-only-cluster
+      uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
       with:
         image: ${{ needs.build-and-publish.outputs.image }}
         app: ${{ inputs.app }}
