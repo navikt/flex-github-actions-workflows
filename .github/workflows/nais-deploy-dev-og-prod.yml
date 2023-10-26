@@ -8,14 +8,6 @@ on:
       app:
         required: true
         type: string
-      dev-cluster:
-        required: false
-        default: dev-gcp
-        type: string
-      prod-cluster:
-        required: false
-        default: prod-gcp
-        type: string
       nais-template:
         required: false
         default: nais/app/naiserator.yaml
@@ -28,7 +20,10 @@ on:
         required: false
         default: nais/app/dev.yaml
         type: string
-
+      dev-only:
+        required: false
+        default: false
+        type: string
 jobs:
   deploy-til-dev:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
@@ -42,13 +37,13 @@ jobs:
         name: Deploy til dev
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: ${{ inputs.dev-cluster }}
+          CLUSTER: dev-gcp
           IMAGE: ${{ inputs.image }}
           RESOURCE: ${{ inputs.nais-template }}
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
-    if: github.ref_name == 'master'
+    if: ${{ github.ref_name == 'master' &&  inputs.dev-only  == 'false' }}
     name: Deploy til prod
     runs-on: ubuntu-latest
     concurrency: deploy-${{ inputs.app }}-til-prod
@@ -60,7 +55,7 @@ jobs:
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           IMAGE: ${{ inputs.image }}
-          CLUSTER: ${{ inputs.prod-cluster }}
+          CLUSTER: prod-gcp
           RESOURCE: ${{ inputs.nais-template }}
           VARS: ${{ inputs.prod-vars }}
       - name: Slack Notification

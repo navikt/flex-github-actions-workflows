@@ -8,15 +8,10 @@ on:
         required: false
         default: ${{ github.event.repository.name }}
         type: string
-      dev-cluster:
+      dev-only:
         required: false
-        default: dev-gcp
-        type: string
-      prod-cluster:
-        required: false
-        default: prod-gcp
-        type: string
-
+        default: false
+        type: boolean
 jobs:
   build-and-publish:
     permissions:
@@ -205,6 +200,5 @@ jobs:
     with:
       image: ${{ needs.build-and-publish.outputs.image }}
       app: ${{ inputs.app }}
-      dev-cluster: ${{ inputs.dev-cluster }}
-      prod-cluster: ${{ inputs.prod-cluster }}
+      dev-only: ${{ inputs.dev-only }}
     secrets: inherit

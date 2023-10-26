@@ -8,6 +8,10 @@
           required: false
           default: ${{ github.event.repository.name }}
           type: string
+        dev-only:
+          required: false
+          default: false
+          type: boolean
       outputs:
         image:
             value: ${{ jobs.build-and-publish.outputs.image }}
@@ -86,5 +90,6 @@
       with:
         image: ${{ needs.build-and-publish.outputs.image }}
         app: ${{ inputs.app }}
+        dev-only: ${{ inputs.dev-only }}
       secrets: inherit
 
