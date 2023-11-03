@@ -12,13 +12,17 @@ on:
         required: false
         default: false
         type: boolean
+      runner:
+        required: false
+        default: ubuntu-latest
+        type: string
 jobs:
   build-and-publish:
     permissions:
         contents: "read"
         id-token: "write"
     name: Bygg og publiser
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     outputs:
       image: ${{ steps.docker-build-push.outputs.image }}
     env:
