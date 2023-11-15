@@ -22,7 +22,7 @@ jobs:
         contents: "read"
         id-token: "write"
     name: Bygg og publiser
-    runs-on: ${{ inputs.runner }}
+    runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.docker-build-push.outputs.image }}
     env:
@@ -120,7 +120,7 @@ jobs:
       contents: "read"
       id-token: "write"
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     env:
       ORG_GRADLE_PROJECT_githubUser: x-access-token
       ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
