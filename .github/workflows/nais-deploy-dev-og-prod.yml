@@ -28,6 +28,7 @@ jobs:
   deploy-til-dev:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     name: Deploy til dev
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     concurrency: deploy-${{ inputs.app }}-til-dev
     steps:
@@ -45,6 +46,7 @@ jobs:
   deploy-til-prod:
     if: ${{ github.ref_name == 'master' &&  inputs.dev-only  == 'false' }}
     name: Deploy til prod
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     concurrency: deploy-${{ inputs.app }}-til-prod
     steps:
