@@ -10,6 +10,7 @@ on:
 jobs:
   trivy-test-docker:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - run: touch me

@@ -30,6 +30,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     name: Bygg, test og publiser docker image
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,6 +73,7 @@ jobs:
   cypress:
     needs: build-and-publish
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +128,7 @@ jobs:
     permissions:
        contents: 'read'
        id-token: 'write'
+    timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
@@ -147,6 +150,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     name: gar-publish
+    timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
     outputs:
@@ -168,6 +172,7 @@ jobs:
 
   lint:
     name: lint
+    timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
@@ -183,6 +188,7 @@ jobs:
 
   unit-test:
     name: unit-test
+    timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
@@ -197,6 +203,7 @@ jobs:
   codeql-analyse:
     if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
     name: codeql-analyse
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -228,6 +235,7 @@ jobs:
   deploy-demo-branch-til-dev-gcp:
     if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
     name: Deploy demo branch til dev-gcp
+    timeout-minutes: 15
     needs: [build-and-publish, cdn-upload, gar-publish]
     runs-on: ubuntu-latest
     env:
@@ -256,6 +264,7 @@ jobs:
   deploy-demo-til-dev-gcp:
     if: github.ref_name == 'master'
     name: Deploy demo til dev-gcp
+    timeout-minutes: 15
     needs: [build-and-publish, cypress, cdn-upload, gar-publish]
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest

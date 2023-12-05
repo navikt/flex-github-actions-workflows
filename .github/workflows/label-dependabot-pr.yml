@@ -6,6 +6,7 @@ jobs:
   label-pr:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && !github.event.pull_request.head.repo.fork }}
+    timeout-minutes: 15
     steps:
       - name: Fetch Dependabot metadata
         id: dependabot-metadata

@@ -14,6 +14,7 @@ jobs:
   delete-demo-app:
     if: startsWith(github.event.ref, 'demo-') || startsWith(github.event.ref, 'dev-')
     name: Delete demo branch dev-gcp
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.event.ref }}

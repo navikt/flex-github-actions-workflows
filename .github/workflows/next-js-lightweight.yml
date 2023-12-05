@@ -18,6 +18,7 @@
   jobs:
     build-and-publish:
       name: Bygg, test og publiser docker image
+      timeout-minutes: 15
       runs-on: ubuntu-latest
       permissions:
         packages: read
@@ -64,6 +65,7 @@
     codeql-analyse:
       if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
       name: codeql-analyse
+      timeout-minutes: 15
       runs-on: ubuntu-latest
       permissions:
         contents: read
