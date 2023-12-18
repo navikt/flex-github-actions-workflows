@@ -34,10 +34,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - uses: nais/deploy/actions/deploy@v1
+      - uses: nais/deploy/actions/deploy@v2
         name: Deploy til dev
         env:
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: dev-gcp
           IMAGE: ${{ inputs.image }}
           RESOURCE: ${{ inputs.nais-template }}
@@ -52,10 +51,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - uses: nais/deploy/actions/deploy@v1
+      - uses: nais/deploy/actions/deploy@v2
         name: Deploy til prod
         env:
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           IMAGE: ${{ inputs.image }}
           CLUSTER: prod-gcp
           RESOURCE: ${{ inputs.nais-template }}
