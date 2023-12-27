@@ -26,7 +26,7 @@ on:
         type: string
 jobs:
   deploy-til-dev:
-    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
     name: Deploy til dev
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -43,7 +43,7 @@ jobs:
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
-    if: ${{ github.ref_name == 'master' &&  inputs.dev-only  == 'false' }}
+    if: ${{ github.ref_name == 'main' &&  inputs.dev-only  == 'false' }}
     name: Deploy til prod
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -60,7 +60,7 @@ jobs:
           VARS: ${{ inputs.prod-vars }}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
-        if: failure() && github.ref_name == 'master'
+        if: failure() && github.ref_name == 'main'
         env:
           SLACK_COLOR: '#ff0000'
           SLACK_MESSAGE: ${{ inputs.app }} deploy til produksjon feilet

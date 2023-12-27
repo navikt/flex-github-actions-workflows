@@ -1,4 +1,4 @@
-# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fspring-boot.yml%40master%22+NOT+is%3Aarchived
+# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fspring-boot.yml%40main%22+NOT+is%3Aarchived
 
 name: Spring boot
 on:
@@ -56,7 +56,7 @@ jobs:
         run: ./gradlew bootJar -x test
 
       - name: docker-build-push
-        if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
         uses: nais/docker-build-push@v0
         id: docker-build-push
         with:
@@ -66,10 +66,10 @@ jobs:
 
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
-        if: failure() && github.ref_name == 'master'
+        if: failure() && github.ref_name == 'main'
         env:
             SLACK_COLOR: '#ff0000'
-            SLACK_MESSAGE: ${{ inputs.app }} bygget feiler på master
+            SLACK_MESSAGE: ${{ inputs.app }} bygget feiler på main
             SLACK_TITLE: ':broken_heart:'
             SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
@@ -110,10 +110,10 @@ jobs:
 
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
-        if: failure() && github.ref_name == 'master'
+        if: failure() && github.ref_name == 'main'
         env:
           SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ inputs.app }} linting feiler på master
+          SLACK_MESSAGE: ${{ inputs.app }} linting feiler på main
           SLACK_TITLE: ':broken_heart:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
@@ -155,10 +155,10 @@ jobs:
 
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
-        if: failure() && github.ref_name == 'master'
+        if: failure() && github.ref_name == 'main'
         env:
           SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ inputs.app }} tester feiler på master
+          SLACK_MESSAGE: ${{ inputs.app }} tester feiler på main
           SLACK_TITLE: ':broken_heart:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
@@ -168,13 +168,13 @@ jobs:
       id-token: 'write'
       security-events: 'write'
     needs: build-and-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
+    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@main
     with:
       image: ${{ needs.build-and-publish.outputs.image }}
     secrets: inherit
 
   codeql-analyse:
-    if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
     name: CodeQL-analyse
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -204,7 +204,7 @@ jobs:
 
   nais-deploy:
     needs: [build-and-publish,lint,test]
-    uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
+    uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
     with:
       image: ${{ needs.build-and-publish.outputs.image }}
       app: ${{ inputs.app }}

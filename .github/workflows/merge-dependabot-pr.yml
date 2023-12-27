@@ -111,7 +111,7 @@ jobs:
                     pull_number: pr.number,
                     merge_method: 'squash'
                 })
-                console.log('Starter master workflow')
+                console.log('Starter main workflow')
 
                 await github.request(
                     'POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches',
@@ -119,7 +119,7 @@ jobs:
                         owner: context.repo.owner,
                         repo: context.repo.repo,
                         workflow_id: 'workflow.yml',
-                        ref: 'master',
+                        ref: 'main',
                     }
                 )
             } else {

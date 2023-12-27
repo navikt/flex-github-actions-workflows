@@ -11,19 +11,19 @@ av [eksemplene her på github](https://github.com/search?q=org%3Anavikt+%22navik
 
 ## Utvikling og endringer
 
-For å teste endringer før de merges inn i master må du gjøre flere ting.
+For å teste endringer før de merges inn i main må du gjøre flere ting.
 
 1. Du må lage en branch i dette github actions repoet.
 2. Deretter må du finne et repo hvis normale fellesworkflow du vil gjøre endringer i. Lage en branch
    for i repoet og i linjene det kalles felles github actions repoet skriver du f.eks. @branch-i-gha-repo istedenfor
-   @master.
+   @main.
 
 ```
 felles-workflow:
    uses: navikt/flex-github-actions-workflows/.github/workflows/spring-boot.yml@dev-branch-i-gha-repo
 ```
 
-3. Husk også på at alle "funksjoner" eller "undersworkflows" som kalles på med @master spesifisert i gha felles repoet
+3. Husk også på at alle "funksjoner" eller "undersworkflows" som kalles på med @main spesifisert i gha felles repoet
    må disse også forandres om du har endret på dem.
 
 ## Demo-delete
@@ -43,7 +43,7 @@ Denne kalles daglig med cronjobber fra alle de andre repoene. I ferieperioder kj
 ## NAIS Deploy til Dev og Prod Workflow
 
 Denne workflowet styrer deploy-prosessen av en applikasjon til NAIS dev og prod klynger. Brancher prefixet med `dev-`
-vil deployes til dev-gcp. Master branchen vil deployes til prod-gcp og dev-gcp.
+vil deployes til dev-gcp. main branchen vil deployes til prod-gcp og dev-gcp.
 
 ## Next.js Workflow
 

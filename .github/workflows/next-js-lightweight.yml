@@ -1,4 +1,4 @@
-  # Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js-lightweight.yml%40master%22+NOT+is%3Aarchived
+  # Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js-lightweight.yml%40main%22+NOT+is%3Aarchived
 
   name: Next js
   on:
@@ -44,7 +44,7 @@
         - name: Build application
           run: npm run build
         - name: docker-build-push
-          if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+          if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
           uses: nais/docker-build-push@v0
           id: docker-build-push
           with:
@@ -57,13 +57,13 @@
         id-token: 'write'
         security-events: 'write'
       needs: build-and-publish
-      uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@master
+      uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@main
       with:
         image: ${{ needs.build-and-publish.outputs.image }}
       secrets: inherit
 
     codeql-analyse:
-      if: github.ref_name == 'master' || startsWith(github.ref_name, 'dev-')
+      if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
       name: codeql-analyse
       timeout-minutes: 15
       runs-on: ubuntu-latest
@@ -88,7 +88,7 @@
 
     nais-deploy:
       needs: build-and-publish
-      uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@master
+      uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
       with:
         image: ${{ needs.build-and-publish.outputs.image }}
         app: ${{ inputs.app }}
