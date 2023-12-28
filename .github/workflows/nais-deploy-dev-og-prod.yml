@@ -5,9 +5,11 @@ on:
       image:
         required: true
         type: string
+        default: 'n/a'
       app:
         required: true
         type: string
+        default: ${{ github.event.repository.name }}
       nais-template:
         required: false
         default: nais/app/naiserator.yaml
@@ -38,8 +40,8 @@ jobs:
         name: Deploy til dev
         env:
           CLUSTER: dev-gcp
-          IMAGE: ${{ inputs.image }}
           RESOURCE: ${{ inputs.nais-template }}
+          VAR: image=${{ inputs.image }},kafkaPool=nav-dev,environment=development
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
@@ -54,9 +56,9 @@ jobs:
       - uses: nais/deploy/actions/deploy@v2
         name: Deploy til prod
         env:
-          IMAGE: ${{ inputs.image }}
           CLUSTER: prod-gcp
           RESOURCE: ${{ inputs.nais-template }}
+          VAR: image=${{ inputs.image }},kafkaPool=nav-prod,environment=production
           VARS: ${{ inputs.prod-vars }}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
