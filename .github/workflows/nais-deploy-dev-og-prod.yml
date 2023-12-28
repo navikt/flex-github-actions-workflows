@@ -3,11 +3,11 @@ on:
   workflow_call:
     inputs:
       image:
-        required: true
+        required: false
         type: string
         default: 'n/a'
       app:
-        required: true
+        required: false
         type: string
         default: ${{ github.event.repository.name }}
       nais-template:
