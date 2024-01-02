@@ -16,7 +16,7 @@ jobs:
             const julStart = new Date(today.getFullYear(), 11, 20);
             const julSlutt = new Date(today.getFullYear(), 11, 31);
             const nyttaarStart = new Date(today.getFullYear(), 0, 1);
-            const nyttaarSlutt = new Date(today.getFullYear(), 0, 5);
+            const nyttaarSlutt = new Date(today.getFullYear(), 0, 3);
 
             if ((today >= sommerStart && today <= sommerSlutt) || (today >= julStart && today <= julSlutt) || (today >= nyttaarStart && today <= nyttaarSlutt)) {
                 console.log('Skriptet kjører ikke i ferier');
