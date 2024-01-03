@@ -18,7 +18,7 @@ on:
         type: string
 jobs:
   build-and-publish:
-    timeout-minutes: 20
+    timeout-minutes: 15
     permissions:
         contents: "read"
         id-token: "write"
@@ -177,7 +177,7 @@ jobs:
     if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
     name: CodeQL-analyse
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
       actions: read
