@@ -99,7 +99,7 @@ jobs:
           install: false
         env:
           MOCK_BACKEND: 'true'
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: cypress-screenshots
