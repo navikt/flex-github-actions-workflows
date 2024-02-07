@@ -39,14 +39,14 @@ jobs:
           node-version: 20
           cache: 'npm'
       - name: next.js cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
       - name: Cache Cypress binary
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
@@ -57,7 +57,7 @@ jobs:
       - name: Build application
         run: npm run build
       - name: cache workspace
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
@@ -80,12 +80,12 @@ jobs:
         containers: [ 0, 1, 2, 3 ]
     steps:
       - name: cache workspace
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
       - name: cache cypress binary
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: cache workspace
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
@@ -157,7 +157,7 @@ jobs:
       image: ${{ steps.docker-build-push.outputs.image }}
     steps:
       - name: cache workspace
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
@@ -177,7 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: cache workspace
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
@@ -193,7 +193,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: cache workspace
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
