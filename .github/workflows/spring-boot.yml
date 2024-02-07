@@ -38,7 +38,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Gradle wrapper validation
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/wrapper-validation-action@v2
       - uses: actions/cache@v4
         with:
           path: ~/.gradle/caches
@@ -92,7 +92,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Gradle wrapper validation
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/wrapper-validation-action@v2
       - uses: actions/cache@v4
         with:
           path: ~/.gradle/caches
@@ -136,7 +136,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Gradle wrapper validation
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/wrapper-validation-action@v2
       - uses: actions/cache@v4
         with:
           path: ~/.gradle/caches
