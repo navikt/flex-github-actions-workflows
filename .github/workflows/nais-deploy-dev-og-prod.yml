@@ -26,6 +26,10 @@ on:
         required: false
         default: false
         type: string
+      extra-vars:
+        required: false
+        default: ""
+        type: string
 jobs:
   deploy-til-dev:
     if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
@@ -41,7 +45,7 @@ jobs:
         env:
           CLUSTER: dev-gcp
           RESOURCE: ${{ inputs.nais-template }}
-          VAR: image=${{ inputs.image }},kafkaPool=nav-dev,unleash-environment=development
+          VAR: image=${{ inputs.image }},kafkaPool=nav-dev,unleash-environment=development${{ inputs.extra-vars }}
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
