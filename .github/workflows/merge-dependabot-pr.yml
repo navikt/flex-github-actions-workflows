@@ -22,6 +22,10 @@ jobs:
                 console.log('Skriptet kjører ikke i ferier');
                 return;
             }
+            if(true){
+                console.log('Aiven er nede så vi vil ikke deploye');
+                return;
+            }
 
 
             const pulls = await github.request('GET /repos/{owner}/{repo}/pulls', {
