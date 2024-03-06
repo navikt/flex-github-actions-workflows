@@ -40,6 +40,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - uses: nais/deploy/actions/deploy@v2
+        name: Deploy til dev
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: ${{ inputs.nais-template }}
+          VAR: image=${{ inputs.image }},kafkaPool=nav-dev,unleash-environment=development${{ inputs.extra-vars }}
+          VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
     if: ${{ github.ref_name == 'main' &&  inputs.dev-only  == 'false' }}
@@ -50,6 +57,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - uses: nais/deploy/actions/deploy@v2
+        name: Deploy til prod
+        env:
+          CLUSTER: prod-gcp
+          RESOURCE: ${{ inputs.nais-template }}
+          VAR: image=${{ inputs.image }},kafkaPool=nav-prod,unleash-environment=production${{ inputs.extra-vars }}
+          VARS: ${{ inputs.prod-vars }}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
         if: failure() && github.ref_name == 'main'
