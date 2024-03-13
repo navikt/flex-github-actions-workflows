@@ -138,11 +138,13 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
       - name: Last opp static files til NAV CDN
-        uses: navikt/frontend/actions/cdn-upload/v1@main
+        uses: nais/deploy/actions/cdn-upload/v2@master
         with:
-          cdn-team-name: flex
+          team: flex
           source: ./.next/static
           destination: /${{github.event.repository.name}}/_next
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
   gar-publish:
     permissions:
