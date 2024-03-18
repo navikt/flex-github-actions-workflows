@@ -138,6 +138,7 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
       - name: Last opp static files til NAV CDN
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
         uses: nais/deploy/actions/cdn-upload/v2@master
         with:
           team: flex
