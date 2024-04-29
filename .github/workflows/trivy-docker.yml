@@ -55,7 +55,7 @@ jobs:
           SLACK_COLOR: '#ff0000'
           SLACK_MESSAGE: ${{ github.event.repository.name }} har en en critical eller high severity sårbarhet avdekket i trivy scan av docker imaget som kan patches, på tide å oppdatere!
           SLACK_TITLE: 'Auda :alert:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ secrets.FLEX_TRIVY_ALERTS_WEBHOOK }}
 
 
 
