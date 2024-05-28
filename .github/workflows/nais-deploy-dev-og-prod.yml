@@ -25,18 +25,18 @@ on:
       dev-only:
         required: false
         default: false
-        type: boolean
+        type: string
       prod-only:
         required: false
         default: false
-        type: boolean
+        type: string
       extra-vars:
         required: false
         default: ""
         type: string
 jobs:
   deploy-til-dev:
-    if: ${{ (github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') && inputs.prod-only == false) }}
+    if: ${{ (github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') && inputs.prod-only == 'false') }}
     name: Deploy til dev
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -53,7 +53,7 @@ jobs:
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
-    if: ${{ github.ref_name == 'main' && inputs.dev-only == false }}
+    if: ${{ github.ref_name == 'main' && inputs.dev-only == 'false' }}
     name: Deploy til prod
     timeout-minutes: 15
     runs-on: ubuntu-latest
