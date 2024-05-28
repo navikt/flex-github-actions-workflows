@@ -24,19 +24,20 @@ on:
         type: string
       dev-only:
         required: false
-        default: false
+        default: "false"
         type: string
       prod-only:
         required: false
-        default: false
+        default: "false"
         type: string
       extra-vars:
         required: false
         default: ""
         type: string
+
 jobs:
   deploy-til-dev:
-    if: ${{ (github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') && inputs.prod-only == 'false') }}
+    if: ${{ (github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')) && inputs.prod-only == 'false' }}
     name: Deploy til dev
     timeout-minutes: 15
     runs-on: ubuntu-latest
