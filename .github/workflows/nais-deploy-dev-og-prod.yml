@@ -50,11 +50,11 @@ jobs:
         env:
           CLUSTER: dev-gcp
           RESOURCE: ${{ inputs.nais-template }}
-          VAR: image=${{ inputs.image }},kafkaPool=nav-dev,unleash-environment=development${{ inputs.extra-vars }}
+          VAR: image=${{ inputs.image }},kafkaPool=nav-dev,unleash-environment=development,${{ inputs.extra-vars }}
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
-    if: ${{ (github.ref_name == 'main' ||github.ref_name == 'oneoff_fiks') && inputs.dev-only == 'false' }}
+    if: ${{ github.ref_name == 'main' && inputs.dev-only == 'false' }}
     name: Deploy til prod
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
         env:
           CLUSTER: prod-gcp
           RESOURCE: ${{ inputs.nais-template }}
-          VAR: image=${{ inputs.image }},kafkaPool=nav-prod,unleash-environment=production${{ inputs.extra-vars }}
+          VAR: image=${{ inputs.image }},kafkaPool=nav-prod,unleash-environment=production,${{ inputs.extra-vars }}
           VARS: ${{ inputs.prod-vars }}
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
