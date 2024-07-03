@@ -54,7 +54,7 @@ jobs:
           VARS: ${{ inputs.dev-vars }}
 
   deploy-til-prod:
-    if: ${{ github.ref_name == 'main' && inputs.dev-only == 'false' }}
+    if: ${{ (github.ref_name == 'main' ||github.ref_name == 'oneoff_fiks') && inputs.dev-only == 'false' }}
     name: Deploy til prod
     timeout-minutes: 15
     runs-on: ubuntu-latest
