@@ -239,7 +239,9 @@ jobs:
     if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
     name: Deploy demo branch til dev-gcp
     timeout-minutes: 15
-    needs: [build-and-publish, cdn-upload, gar-publish]
+    needs: [build-and-publ
+
+      ish, cdn-upload, gar-publish]
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
@@ -253,6 +255,7 @@ jobs:
           RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.gar-publish.outputs.image }}
           VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}
+          TTL_HOURS: 168h
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
         env:
