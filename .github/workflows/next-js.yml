@@ -239,9 +239,7 @@ jobs:
     if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
     name: Deploy demo branch til dev-gcp
     timeout-minutes: 15
-    needs: [build-and-publ
-
-      ish, cdn-upload, gar-publish]
+    needs: [build-and-publish, cdn-upload, gar-publish]
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
