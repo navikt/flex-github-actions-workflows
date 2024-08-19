@@ -244,6 +244,7 @@ jobs:
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
       DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
+      DEMO_TTL_HOURS: 168h
     steps:
       - uses: actions/checkout@v4
       - name: Deploy demo branch til dev-gcp
@@ -252,8 +253,8 @@ jobs:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.gar-publish.outputs.image }}
-          VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}
-          TTL_HOURS: 168h
+          VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}},TTL_HOURS=${{env.DEMO_TTL_HOURS}}
+          #TTL_HOURS: 168h
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
         env:
