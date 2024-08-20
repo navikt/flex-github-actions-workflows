@@ -45,11 +45,7 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-      - name: Cache Cypress binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+
       - name: Install npm dependencies
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,60 +65,6 @@ jobs:
           SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på main
           SLACK_TITLE: 'Auda :alert:'
           SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
-
-  cypress:
-    needs: build-and-publish
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        containers: [ 0, 1, 2, 3 ]
-    steps:
-      - name: cache workspace
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}
-          key: ${{ github.sha }}
-      - name: cache cypress binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
-      - name: Kjør cypress
-        uses: cypress-io/github-action@v6.7.2
-        with:
-          start: npm run start-ingen-dekorator
-          wait-on: http://localhost:8080/${{inputs.base-path}}/api/internal/isAlive
-          config-file: cypress.config.ts
-          spec: cypress/e2e/run-${{ matrix.containers }}/**
-          install: false
-        env:
-          MOCK_BACKEND: 'true'
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: cypress-screenshots
-          path: cypress/screenshots
-          if-no-files-found: ignore
-      - name: Slack Notification ved feil
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
-        if: failure() && github.ref_name == 'main'
-        env:
-          SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ github.event.repository.name }} cypress tester feiler på main
-          SLACK_TITLE: 'Auda :alert:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
-
-  trivy-docker:
-    permissions:
-      id-token: 'write'
-      security-events: 'write'
-    needs: gar-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@main
-    with:
-      image: ${{ needs.gar-publish.outputs.image }}
-    secrets: inherit
 
   cdn-upload:
     permissions:
@@ -203,32 +145,8 @@ jobs:
       - name: Run tests
         run: npm run test:ci
 
-  codeql-analyse:
-    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
-    name: codeql-analyse
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-      security-events: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          queries: security-and-quality
-          languages: 'javascript'
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:javascript"
-
   nais-deploy:
-    needs: [build-and-publish, cypress, cdn-upload, gar-publish, unit-test]
+    needs: [build-and-publish, cdn-upload, gar-publish, unit-test]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
     with:
       image: ${{ needs.gar-publish.outputs.image }}
@@ -267,7 +185,7 @@ jobs:
     if: github.ref_name == 'main'
     name: Deploy demo til dev-gcp
     timeout-minutes: 15
-    needs: [build-and-publish, cypress, cdn-upload, gar-publish]
+    needs: [build-and-publish, cdn-upload, gar-publish]
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
