@@ -27,4 +27,4 @@ jobs:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
           IMAGE: ghcr.io/navikt/${{ inputs.app }}:latest
-          VAR: appname=${{ env.DEMO_APPNAME }},replicas=0,branchState=deleted,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}
+          VAR: appname=${{ env.DEMO_APPNAME }},replicas=0,branchState=deleted,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}},TTL_HOURS=1h
