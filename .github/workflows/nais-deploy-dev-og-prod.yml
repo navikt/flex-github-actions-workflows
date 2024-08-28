@@ -69,11 +69,4 @@ jobs:
           RESOURCE: ${{ inputs.nais-template }}
           VAR: image=${{ inputs.image }},kafkaPool=nav-prod,unleash-environment=production,${{ inputs.extra-vars }}
           VARS: ${{ inputs.prod-vars }}
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
-        if: failure() && github.ref_name == 'main'
-        env:
-          SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ inputs.app }} deploy til produksjon feilet
-          SLACK_TITLE: ':sad_cowboy:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
