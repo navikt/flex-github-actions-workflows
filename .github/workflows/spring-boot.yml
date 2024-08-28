@@ -64,14 +64,6 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
-        if: failure() && github.ref_name == 'main'
-        env:
-            SLACK_COLOR: '#ff0000'
-            SLACK_MESSAGE: ${{ inputs.app }} bygget feiler på main
-            SLACK_TITLE: ':broken_heart:'
-            SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
   lint:
     timeout-minutes: 15
@@ -108,14 +100,6 @@ jobs:
       - name: Lint koden
         run:  ./gradlew ktlintCheck
 
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
-        if: failure() && github.ref_name == 'main'
-        env:
-          SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ inputs.app }} linting feiler på main
-          SLACK_TITLE: ':broken_heart:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
   test:
     timeout-minutes: 15
@@ -153,14 +137,6 @@ jobs:
       - name: Run tests
         run:  ./gradlew test
 
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
-        if: failure() && github.ref_name == 'main'
-        env:
-          SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ inputs.app }} tester feiler på main
-          SLACK_TITLE: ':broken_heart:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
 
   trivy-docker:

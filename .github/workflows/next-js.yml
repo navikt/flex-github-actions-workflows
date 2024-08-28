@@ -61,14 +61,6 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
-        if: failure() && github.ref_name == 'main'
-        env:
-          SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ github.event.repository.name }} bygget feiler på main
-          SLACK_TITLE: 'Auda :alert:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
 
   cypress:
     needs: build-and-publish
@@ -105,14 +97,7 @@ jobs:
           name: cypress-screenshots
           path: cypress/screenshots
           if-no-files-found: ignore
-      - name: Slack Notification ved feil
-        uses: rtCamp/action-slack-notify@4e5fb42d249be6a45a298f3c9543b111b02f7907
-        if: failure() && github.ref_name == 'main'
-        env:
-          SLACK_COLOR: '#ff0000'
-          SLACK_MESSAGE: ${{ github.event.repository.name }} cypress tester feiler på main
-          SLACK_TITLE: 'Auda :alert:'
-          SLACK_WEBHOOK: ${{ secrets.SPOKELSER_WEBHOOK }}
+
 
   trivy-docker:
     permissions:
