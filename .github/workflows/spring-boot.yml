@@ -63,8 +63,6 @@ jobs:
           team: flex
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-        env:
-          TRIVY_JAVA_DB_REPOSITORY: "public.ecr.aws/aquasecurity/trivy-java-db:1"
 
   lint:
     timeout-minutes: 15
@@ -138,17 +136,6 @@ jobs:
       - name: Run tests
         run:  ./gradlew test
 
-
-
-  trivy-docker:
-    permissions:
-      id-token: 'write'
-      security-events: 'write'
-    needs: build-and-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@main
-    with:
-      image: ${{ needs.build-and-publish.outputs.image }}
-    secrets: inherit
 
   codeql-analyse:
     if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
