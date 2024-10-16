@@ -99,16 +99,6 @@ jobs:
           if-no-files-found: ignore
 
 
-  trivy-docker:
-    permissions:
-      id-token: 'write'
-      security-events: 'write'
-    needs: gar-publish
-    uses: navikt/flex-github-actions-workflows/.github/workflows/trivy-docker.yml@main
-    with:
-      image: ${{ needs.gar-publish.outputs.image }}
-    secrets: inherit
-
   cdn-upload:
     permissions:
        contents: 'read'
