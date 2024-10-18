@@ -134,10 +134,6 @@ jobs:
             echo "playwright_exists=false" >> $GITHUB_ENV
           fi
 
-      - name: Install npm dependencies
-        if: env.playwright_exists == 'true'
-        run: npm ci
-
       - name: Install Playwright browser dependencies
         if: env.playwright_exists == 'true'
         run: npx playwright install-deps
@@ -156,7 +152,7 @@ jobs:
           name: playwright-screenshots
           path: playwright/screenshots
           if-no-files-found: ignore
-  
+
 
 
   cdn-upload:
