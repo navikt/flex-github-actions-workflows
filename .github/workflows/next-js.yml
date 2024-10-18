@@ -134,9 +134,16 @@ jobs:
             echo "playwright_exists=false" >> $GITHUB_ENV
           fi
 
+
       - name: Install Playwright browser dependencies
         if: env.playwright_exists == 'true'
         run: npx playwright install-deps
+
+
+
+#      - name: run app with
+#        run: npm run start-ingen-dekorator
+#        background: true
 
       - name: Install Playwright browsers
         if: env.playwright_exists == 'true'
