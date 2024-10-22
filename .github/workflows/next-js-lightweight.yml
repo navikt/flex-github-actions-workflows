@@ -43,6 +43,8 @@
           run: npm run lint
         - name: Build application
           run: npm run build
+        - name: prune dev dependencies
+          run: npm prune --production
         - name: docker-build-push
           if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
           uses: nais/docker-build-push@v0

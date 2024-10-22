@@ -131,6 +131,8 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
+      - name: prune dev dependencies
+        run: npm prune --production
       - name: docker-build-push
         if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
         uses: nais/docker-build-push@v0
