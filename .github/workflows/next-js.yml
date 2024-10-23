@@ -73,6 +73,16 @@ jobs:
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+      - name: Check if cypress folder exists
+        id: check_cypress_folder
+        run: |
+          if [ -d "./cypress" ]; then
+            echo "Cypress folder exists"
+            echo "cypress_exists=true" >> $GITHUB_ENV
+          else
+            echo "Cypress folder does not exist"
+            echo "cypress_exists=false" >> $GITHUB_ENV
+          fi
       - name: Kjør cypress
         uses: cypress-io/github-action@v6.7.6
         with:
