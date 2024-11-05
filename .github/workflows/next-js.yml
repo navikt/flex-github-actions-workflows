@@ -89,7 +89,7 @@ jobs:
           fi
       - name: Kjør cypress
         if: env.cypress_exists == 'true'
-        uses: cypress-io/github-action@v6.7.6
+        uses: cypress-io/github-action@v6.7.7
         with:
           start: npm run start-ingen-dekorator
           wait-on: http://localhost:${{inputs.port}}/${{inputs.base-path}}/api/internal/isAlive
