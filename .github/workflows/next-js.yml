@@ -266,8 +266,6 @@ jobs:
 
 
   bygg-app-for-playwright:
-    permissions:
-      packages: write
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ github.repository }}-e2e
