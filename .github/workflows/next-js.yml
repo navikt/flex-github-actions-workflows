@@ -77,14 +77,11 @@ jobs:
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
-      - name: Check if cypress folder exists
-        id: check_cypress_folder
+      - name: Sjekk om cypress eksisterer
         run: |
           if [ -d "./cypress" ]; then
-            echo "Cypress folder exists"
             echo "cypress_exists=true" >> $GITHUB_ENV
           else
-            echo "Cypress folder does not exist"
             echo "cypress_exists=false" >> $GITHUB_ENV
           fi
       - name: Kjør cypress
@@ -276,28 +273,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - id: sjekk-playwright-exists
-        run: |
-          if [ -d "./playwright" ]; then
-            echo "playwright_exists=true" >> $GITHUB_ENV
-          fi
       - name: Install npm dependencies
-        if: env.playwright_exists == 'true'
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci
       - name: Build e2e version of app
-        if: env.playwright_exists == 'true'
         run: npm run build
       - name: Log in to the Container registry
-        if: env.playwright_exists == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
-        if: env.playwright_exists == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -324,21 +312,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - id: sjekk-playwright-exists
-        run: |
-          if [ -d "./playwright" ]; then
-            echo "playwright_exists=true" >> $GITHUB_ENV
-          fi
       - name: Install npm dependencies
-        if: env.playwright_exists == 'true'
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci
       - name: Install Playwright browsers
-        if: env.playwright_exists == 'true'
         run: npx playwright install
       - name: Run Playwright
-        if: env.playwright_exists == 'true'
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() && env.playwright_exists == 'true' }}
@@ -357,18 +337,12 @@ jobs:
       id-token: 'write'
     steps:
       - uses: actions/checkout@v4
-      - id: sjekk-playwright-exists
-        run: |
-          if [ -d "./playwright" ]; then
-            echo "playwright_exists=true" >> $GITHUB_ENV
-          fi
+
       - uses: actions/setup-node@v4
-        if: env.playwright_exists == 'true'
         with:
           node-version: 20
 
       - name: Last ned rapporter
-        if: env.playwright_exists == 'true'
         uses: actions/download-artifact@v4
         with:
           path: all-blob-reports
@@ -376,11 +350,9 @@ jobs:
           merge-multiple: true
 
       - name: Merge til HTML Report
-        if: env.playwright_exists == 'true'
         run: npx playwright merge-reports --reporter html ./all-blob-reports
 
       - name: Last opp til CDN
-        if: env.playwright_exists == 'true'
         uses: nais/deploy/actions/cdn-upload/v2@master
         with:
           team: flex
@@ -390,11 +362,9 @@ jobs:
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
       - name: Merge til json rapport
-        if: env.playwright_exists == 'true'
         run: npx playwright merge-reports --reporter json  ./all-blob-reports > playwright-report/report.json
 
       - name: Lag GHA summary
-        if: env.playwright_exists == 'true'
         run: |
           total_tests=$(jq '.stats.expected + .stats.unexpected' playwright-report/report.json)
           passed_tests=$(jq '.stats.expected' playwright-report/report.json)
