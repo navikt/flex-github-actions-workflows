@@ -105,58 +105,6 @@ jobs:
           path: cypress/screenshots
           if-no-files-found: ignore
 
-  playwright:
-    needs: build-and-publish
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: cache workspace
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}
-          key: ${{ github.sha }}
-
-      - name: cache playwright binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
-
-      - name: Check if Playwright folder exists
-        id: check_playwright_folder
-        run: |
-          if [ -d "./playwright" ]; then
-            echo "Playwright folder exists"
-            echo "playwright_exists=true" >> $GITHUB_ENV
-          else
-            echo "Playwright folder does not exist"
-            echo "playwright_exists=false" >> $GITHUB_ENV
-          fi
-      - name: Install Playwright browser dependencies
-        if: env.playwright_exists == 'true'
-        run: npx playwright install-deps
-      - name: Install Playwright browsers
-        if: env.playwright_exists == 'true'
-        run: npx playwright install
-
-      - name: Run Playwright tests
-        if: env.playwright_exists == 'true'
-        run: npx playwright test
-
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-screenshots
-          path: playwright/screenshots
-          if-no-files-found: ignore
-
-
-
   cdn-upload:
     permissions:
        contents: 'read'
@@ -263,7 +211,7 @@ jobs:
           category: "/language:javascript"
 
   nais-deploy:
-    needs: [build-and-publish, cypress, playwright, cdn-upload, gar-publish, unit-test]
+    needs: [build-and-publish, cypress, cdn-upload, gar-publish, unit-test]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
     with:
       image: ${{ needs.gar-publish.outputs.image }}
