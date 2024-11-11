@@ -304,15 +304,11 @@ jobs:
         shardIndex: [1, 2, 3, 4]
         shardTotal: [4]
     steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
+      - name: cache workspace
+        uses: actions/cache@v4
         with:
-          node-version: 20
-      - name: Install npm dependencies
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm ci
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
       - name: Install Playwright browsers
         run: npx playwright install
       - name: Run Playwright
