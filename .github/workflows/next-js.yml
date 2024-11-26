@@ -320,6 +320,13 @@ jobs:
           name: blob-report-${{ matrix.shardIndex }}
           path: blob-report
           retention-days: 1
+      - name: Upload testresults to GitHub Actions Artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.shardIndex }}
+          path: test-results
+          retention-days: 1
 
   playwright-rapport:
     if: ${{ !cancelled() }}
