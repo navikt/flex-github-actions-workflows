@@ -322,7 +322,7 @@ jobs:
           retention-days: 1
 
   playwright-rapport:
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && !startsWith(github.ref_name, 'dependabot/') }}
     needs: [playwright]
     runs-on: ubuntu-latest
     permissions:
