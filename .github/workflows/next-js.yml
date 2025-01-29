@@ -266,7 +266,6 @@ jobs:
 
   bygg-app-for-playwright:
     runs-on: ubuntu-latest
-    needs: [ build-and-publish ]
     env:
       IMAGE_NAME: ${{ github.repository }}-e2e
       REGISTRY: ghcr.io
