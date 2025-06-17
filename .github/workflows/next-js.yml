@@ -59,7 +59,6 @@ jobs:
           key: ${{ github.sha }}
 
   cypress:
-    if: ${{ !contains(github.ref_name, 'yolo') }}
     needs: build-and-publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -68,6 +67,11 @@ jobs:
       matrix:
         containers: [ 0, 1, 2, 3 ]
     steps:
+      - name: Exit early in yolo mode
+        if: contains(github.ref_name, 'yolo')
+        run: |
+          echo "YOLO mode active — skipping Cypress. 🤙"
+          exit 0
       - name: cache workspace
         uses: actions/cache@v4
         with:
@@ -158,12 +162,16 @@ jobs:
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
   lint:
-    if: ${{ !contains(github.ref_name, 'yolo') }}
     name: lint
     timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
+      - name: Exit early in yolo mode
+        if: contains(github.ref_name, 'yolo')
+        run: |
+          echo "YOLO mode active — skipping Cypress. 🤙"
+          exit 0
       - name: cache workspace
         uses: actions/cache@v4
         with:
@@ -175,12 +183,16 @@ jobs:
         run: npm run lint
 
   unit-test:
-    if: ${{ !contains(github.ref_name, 'yolo') }}
     name: unit-test
     timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
+      - name: Exit early in yolo mode
+        if: contains(github.ref_name, 'yolo')
+        run: |
+          echo "YOLO mode active — skipping Cypress. 🤙"
+          exit 0
       - name: cache workspace
         uses: actions/cache@v4
         with:
@@ -190,7 +202,7 @@ jobs:
         run: npm run test:ci
 
   codeql-analyse:
-    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') && !contains(github.ref_name, 'yolo')
+    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
 
     name: codeql-analyse
     timeout-minutes: 15
@@ -200,6 +212,11 @@ jobs:
       actions: read
       security-events: write
     steps:
+      - name: Exit early in yolo mode
+        if: contains(github.ref_name, 'yolo')
+        run: |
+          echo "YOLO mode active — skipping Cypress. 🤙"
+          exit 0
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Initialize CodeQL
@@ -275,6 +292,11 @@ jobs:
       IMAGE_NAME: ${{ github.repository }}-e2e
       REGISTRY: ghcr.io
     steps:
+      - name: Exit early in yolo mode
+        if: contains(github.ref_name, 'yolo')
+        run: |
+          echo "YOLO mode active — skipping Cypress. 🤙"
+          exit 0
       - name: cache workspace
         uses: actions/cache@v4
         with:
@@ -333,6 +355,11 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
+      - name: Exit early in yolo mode
+        if: contains(github.ref_name, 'yolo')
+        run: |
+          echo "YOLO mode active — skipping Cypress. 🤙"
+          exit 0
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
