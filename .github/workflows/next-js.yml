@@ -378,4 +378,4 @@ jobs:
             echo "Failed tests: $failed_tests 🔹" >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "Se hele rapporten [her](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/playwright-report/index.html)." >> $GITHUB_STEP_SUMMARY          
+          echo "Se hele rapporten [her](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/playwright-report/index.html)." >> $GITHUB_STEP_SUMMARY
