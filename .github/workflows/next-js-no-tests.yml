@@ -154,20 +154,3 @@ jobs:
           SLACK_USERNAME: Demo deploy
           SLACK_ICON: ':lab_coat:'
           SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
-
-  deploy-demo-til-dev-gcp:
-    if: github.ref_name == 'main'
-    name: Deploy demo til dev-gcp
-    timeout-minutes: 15
-    needs: [build-and-publish, cdn-upload, gar-publish]
-    concurrency: deploy-demo-til-dev-gcp
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy til dev-gcp
-        uses: nais/deploy/actions/deploy@v2
-        env:
-          CLUSTER: dev-gcp
-          RESOURCE: nais/app/demo.yaml
-          IMAGE: ${{ needs.gar-publish.outputs.image }}
-          VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
