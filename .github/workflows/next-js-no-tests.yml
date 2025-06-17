@@ -150,6 +150,7 @@ jobs:
     with:
       image: ${{ needs.gar-publish.outputs.image }}
       app: ${{ inputs.app }}
+      dev-only: true
     secrets: inherit
 
   deploy-demo-branch-til-dev-gcp:
