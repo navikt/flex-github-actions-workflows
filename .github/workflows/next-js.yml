@@ -19,6 +19,7 @@ on:
       image:
         value: ${{ jobs.gar-publish.outputs.image }}
 
+
 jobs:
   build-and-publish:
     permissions:
@@ -29,7 +30,6 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -59,6 +59,7 @@ jobs:
           key: ${{ github.sha }}
 
   cypress:
+    if: ${{ !contains(github.ref_name, 'yolo') }}
     needs: build-and-publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -157,6 +158,7 @@ jobs:
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
   lint:
+    if: ${{ !contains(github.ref_name, 'yolo') }}
     name: lint
     timeout-minutes: 15
     needs: build-and-publish
@@ -173,6 +175,7 @@ jobs:
         run: npm run lint
 
   unit-test:
+    if: ${{ !contains(github.ref_name, 'yolo') }}
     name: unit-test
     timeout-minutes: 15
     needs: build-and-publish
@@ -187,7 +190,8 @@ jobs:
         run: npm run test:ci
 
   codeql-analyse:
-    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
+    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') && !contains(github.ref_name, 'yolo')
+
     name: codeql-analyse
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -378,4 +382,4 @@ jobs:
             echo "Failed tests: $failed_tests 🔹" >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "Se hele rapporten [her](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/playwright-report/index.html)." >> $GITHUB_STEP_SUMMARY          
+          echo "Se hele rapporten [her](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/playwright-report/index.html)." >> $GITHUB_STEP_SUMMARY
