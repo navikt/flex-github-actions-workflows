@@ -106,20 +106,6 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
-  unit-test:
-    name: unit-test
-    timeout-minutes: 15
-    needs: build-and-publish
-    runs-on: ubuntu-latest
-    steps:
-      - name: cache workspace
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}
-          key: ${{ github.sha }}
-      - name: Run tests
-        run: npm run test:ci
-
   codeql-analyse:
     if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
     name: codeql-analyse
@@ -145,7 +131,7 @@ jobs:
           category: "/language:javascript"
 
   nais-deploy:
-    needs: [build-and-publish, cdn-upload, gar-publish, unit-test]
+    needs: [build-and-publish, cdn-upload, gar-publish]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
     with:
       image: ${{ needs.gar-publish.outputs.image }}
