@@ -20,7 +20,18 @@ on:
         value: ${{ jobs.gar-publish.outputs.image }}
 
 jobs:
+  validate-branch:
+    name: Validate branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if branch is main
+        if: github.ref_name == 'main'
+        run: |
+          echo "ERROR: This workflow cannot be run on the main branch, please run the full workflow with tests"
+          exit 1
+          
   build-and-publish:
+    needs: validate-branch
     permissions:
       packages: 'read'
       contents: 'read'
