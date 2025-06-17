@@ -1,4 +1,4 @@
-# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js.yml%40main%22+NOT+is%3Aarchived
+# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js-no-tests.yml%40main%22+NOT+is%3Aarchived
 
 name: Next js
 on:
@@ -29,7 +29,7 @@ jobs:
         run: |
           echo "ERROR: This workflow cannot be run on the main branch, please run the full workflow with tests"
           exit 1
-          
+
   build-and-publish:
     needs: validate-branch
     permissions:
