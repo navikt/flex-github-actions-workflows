@@ -136,8 +136,12 @@ jobs:
       image: ${{ steps.docker-build-push.outputs.image }}
     steps:
       - uses: actions/checkout@v4
+      - name: Setup .npmrc for GitHub Packages
+        run: |
+          echo "@navikt:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
       - name: prune dev dependencies
-        run: npm prune --production
+        run: npm prune --omit=dev
       - run: rm .env
       - run: touch .env
       - name: docker-build-push
