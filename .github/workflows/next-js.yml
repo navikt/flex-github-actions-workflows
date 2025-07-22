@@ -357,6 +357,12 @@ jobs:
       - name: Merge til json rapport
         run: npx playwright merge-reports --reporter json  ./all-blob-reports > playwright-report/report.json
 
+      - name: Upload Playwright Report JSON for Debugging
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-playwright-report-json
+          path: playwright-report/report.json
+
       - name: Lag GHA summary
         run: |
           total_tests=$(jq '.stats.expected + .stats.unexpected' playwright-report/report.json)
