@@ -334,9 +334,8 @@ jobs:
       - name: Last ned rapporter
         uses: actions/download-artifact@v4
         with:
+          name: blob-report
           path: all-blob-reports
-          pattern: blob-report*
-          merge-multiple: true
 
       - name: Merge til HTML Report
         run: npx playwright merge-reports --reporter html ./all-blob-reports
