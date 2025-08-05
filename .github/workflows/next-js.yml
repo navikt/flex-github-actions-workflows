@@ -95,6 +95,16 @@ jobs:
           install: false
         env:
           MOCK_BACKEND: 'true'
+      - name: Stop test server
+        if: always() && env.cypress_exists == 'true'
+        run: |
+          # Kill any processes running on the specified port
+          if lsof -Pi :${{inputs.port}} -sTCP:LISTEN -t >/dev/null 2>&1; then
+            echo "Stopping server on port ${{inputs.port}}"
+            lsof -Pi :${{inputs.port}} -sTCP:LISTEN -t | xargs kill -TERM
+          else
+            echo "No server running on port ${{inputs.port}}"
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
