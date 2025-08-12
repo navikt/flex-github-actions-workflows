@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -197,7 +197,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -228,7 +228,7 @@ jobs:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
       DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Deploy demo branch til dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
@@ -254,7 +254,7 @@ jobs:
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Deploy til dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
@@ -329,7 +329,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v4
         with:

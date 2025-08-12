@@ -44,7 +44,7 @@ jobs:
     concurrency: deploy-${{ inputs.app }}-til-dev
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: nais/deploy/actions/deploy@v2
         name: Deploy til dev
         env:
@@ -61,7 +61,7 @@ jobs:
     concurrency: deploy-${{ inputs.app }}-til-prod
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - uses: nais/deploy/actions/deploy@v2
         name: Deploy til prod
         env:
