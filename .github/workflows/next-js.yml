@@ -297,7 +297,7 @@ jobs:
     services:
       app:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports: ['3000:3000']
+        ports: ['3000:3000', '3001:3001']
     strategy:
       fail-fast: false
       matrix:
