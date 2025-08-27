@@ -295,9 +295,16 @@ jobs:
     needs: [bygg-app-for-playwright]
     runs-on: ubuntu-latest
     services:
-      app:
+      app-main:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports: ['3000:3000', '3001:3001']
+        ports: [ '3000:3000' ]
+        env:
+          NO_DECORATOR: 'true'
+      app-decorator:
+        image: ${{ needs.bygg-app-for-playwright.outputs.image }}
+        ports: [ '3001:3000' ]
+        env:
+          NO_DECORATOR: 'false'
     strategy:
       fail-fast: false
       matrix:
