@@ -20,7 +20,7 @@ jobs:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.event.ref }}
       DEMO_INGRESS: ${{ inputs.app }}-${{ github.event.ref }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Skaler ned demo app i dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
