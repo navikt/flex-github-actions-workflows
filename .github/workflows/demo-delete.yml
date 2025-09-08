@@ -26,5 +26,5 @@ jobs:
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
-          IMAGE: europe-north1-docker.pkg.dev/nais-management-233d/flex/${{ inputs.app }}:latest
+          IMAGE: europe-north1-docker.pkg.dev/${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}/flex/${{ inputs.app }}:latest
           VAR: appname=${{ env.DEMO_APPNAME }},replicas=0,branchState=deleted,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}},TTL_HOURS=1h
