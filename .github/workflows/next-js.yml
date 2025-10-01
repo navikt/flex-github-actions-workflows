@@ -317,7 +317,7 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
       - name: Install Playwright browsers
-        run: npx playwright install
+        run: npx playwright install --with-deps
       - name: Run Playwright
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Upload blob report to GitHub Actions Artifacts
