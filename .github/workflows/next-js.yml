@@ -294,6 +294,7 @@ jobs:
   playwright:
     needs: [ bygg-app-for-playwright ]
     runs-on: ubuntu-latest
+    name: Playwright (${{ matrix.browser }}) shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     services:
       app-main:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
@@ -318,17 +319,17 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
 
-      - name: Install Playwright browsers
+      - name: Install Playwright (browser + deps)
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run Playwright
-        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
-      - name: Upload blob report to GitHub Actions Artifacts
+      - name: Upload blob report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: blob-report-${{ matrix.shardIndex }}
+          name: blob-report-${{ matrix.browser }}-${{ matrix.shardIndex }}
           path: blob-report
           retention-days: 1
 
