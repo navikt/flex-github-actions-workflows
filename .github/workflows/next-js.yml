@@ -8,7 +8,7 @@ on:
         type: string
       port:
         required: false
-        default: '8080'
+        default: "8080"
         type: string
       base-path:
         required: true
@@ -20,9 +20,9 @@ on:
 jobs:
   build-and-publish:
     permissions:
-      packages: 'read'
-      contents: 'read'
-      id-token: 'write'
+      packages: read
+      contents: read
+      id-token: write
     name: Bygg, test og publiser docker image
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -30,10 +30,12 @@ jobs:
       playwright_exists: ${{ steps.check-playwright.outputs.playwright_exists }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
+
       - name: next.js cache
         uses: actions/cache@v4
         with:
@@ -41,25 +43,30 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
       - name: cache cypress binary
         uses: actions/cache@v4
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+
       - name: Sjekk om playwright eksisterer
         id: check-playwright
         run: |
           if grep -q "@playwright/test" package.json 2>/dev/null; then
-            echo "playwright_exists=true" >> $GITHUB_OUTPUT
+            echo "playwright_exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "playwright_exists=false" >> $GITHUB_OUTPUT
+            echo "playwright_exists=false" >> "$GITHUB_OUTPUT"
           fi
+
       - name: Install npm dependencies
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci
+
       - name: Build application
         run: npm run build
+
       - name: cache workspace
         uses: actions/cache@v4
         with:
@@ -80,18 +87,21 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
+
       - name: cache cypress binary
         uses: actions/cache@v4
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+
       - name: Sjekk om cypress eksisterer
         run: |
           if [ -d "./cypress" ]; then
-            echo "cypress_exists=true" >> $GITHUB_ENV
+            echo "cypress_exists=true" >> "$GITHUB_ENV"
           else
-            echo "cypress_exists=false" >> $GITHUB_ENV
+            echo "cypress_exists=false" >> "$GITHUB_ENV"
           fi
+
       - name: Kjør cypress
         if: env.cypress_exists == 'true'
         uses: cypress-io/github-action@v6.10.2
@@ -102,7 +112,8 @@ jobs:
           spec: cypress/e2e/run-${{ matrix.containers }}/**
           install: false
         env:
-          MOCK_BACKEND: 'true'
+          MOCK_BACKEND: "true"
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -112,8 +123,8 @@ jobs:
 
   cdn-upload:
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: read
+      id-token: write
     timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
@@ -123,8 +134,9 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
+
       - name: Last opp static files til NAV CDN
-        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') || startsWith(github.ref_name, 'demo-')
         uses: nais/deploy/actions/cdn-upload/v2@master
         with:
           team: flex
@@ -135,9 +147,9 @@ jobs:
 
   gar-publish:
     permissions:
-      packages: 'read'
-      contents: 'read'
-      id-token: 'write'
+      packages: read
+      contents: read
+      id-token: write
     name: gar-publish
     timeout-minutes: 15
     needs: build-and-publish
@@ -150,12 +162,15 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
+
       - name: prune dev dependencies
         run: npm prune --production
-      - run: rm .env
+
+      - run: rm .env || true
       - run: touch .env
+
       - name: docker-build-push
-        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') || startsWith(github.ref_name, 'demo-')
         uses: nais/docker-build-push@v0
         id: docker-build-push
         with:
@@ -174,8 +189,10 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
+
       - name: Run prettier
         run: npm run prettier:check
+
       - name: Run lint
         run: npm run lint
 
@@ -190,6 +207,7 @@ jobs:
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
+
       - name: Run tests
         run: npm run test:ci
 
@@ -205,20 +223,31 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           queries: security-and-quality
-          languages: 'javascript'
+          languages: javascript
+
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:javascript"
 
   nais-deploy:
-    needs: [build-and-publish, cypress, playwright, cdn-upload, gar-publish, unit-test]
+    needs:
+      [
+        build-and-publish,
+        cypress,
+        playwright,
+        cdn-upload,
+        gar-publish,
+        unit-test,
+      ]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
     with:
       image: ${{ needs.gar-publish.outputs.image }}
@@ -229,13 +258,14 @@ jobs:
     if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
     name: Deploy demo branch til dev-gcp
     timeout-minutes: 15
-    needs: [build-and-publish, cdn-upload, gar-publish]
+    needs: [ build-and-publish, cdn-upload, gar-publish ]
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
       DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Deploy demo branch til dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
@@ -243,25 +273,27 @@ jobs:
           RESOURCE: nais/app/demo.yaml
           IMAGE: ${{ needs.gar-publish.outputs.image }}
           VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}},TTL_HOURS=168h
+
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@c33737706dea87cd7784c687dadc9adf1be59990
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_MESSAGE: 'Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}'
+          SLACK_MESSAGE: "Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}"
           SLACK_TITLE: ${{ github.ref_name }}
           SLACK_USERNAME: Demo deploy
-          SLACK_ICON: ':lab_coat:'
+          SLACK_ICON: ":lab_coat:"
           SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
 
   deploy-demo-til-dev-gcp:
     if: github.ref_name == 'main'
     name: Deploy demo til dev-gcp
     timeout-minutes: 15
-    needs: [build-and-publish, cypress, cdn-upload, gar-publish]
+    needs: [ build-and-publish, cypress, cdn-upload, gar-publish ]
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Deploy til dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
@@ -270,20 +302,19 @@ jobs:
           IMAGE: ${{ needs.gar-publish.outputs.image }}
           VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
 
-  # ========================================
-  # 🎭 OPTIMIZED PLAYWRIGHT SECTION
-  # ========================================
-
   bygg-app-for-playwright:
     if: needs.build-and-publish.outputs.playwright_exists == 'true'
     runs-on: ubuntu-latest
-    needs: [build-and-publish]
+    needs: [ build-and-publish ]
     permissions:
       packages: write
       contents: read
     env:
       IMAGE_NAME: ${{ github.repository }}-e2e
       REGISTRY: ghcr.io
+    outputs:
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      cache-hit: ${{ steps.docker-cache.outputs.cache-hit }}
     steps:
       - name: cache workspace
         uses: actions/cache@v4
@@ -291,7 +322,19 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
 
+      - name: Check if image exists
+        id: docker-cache
+        run: |
+          set -euo pipefail
+          if docker manifest inspect "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >/dev/null 2>&1; then
+            echo "cache-hit=true" >> "$GITHUB_OUTPUT"
+            echo "Docker image already exists, skipping build"
+          else
+            echo "cache-hit=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Log in to the Container registry
+        if: steps.docker-cache.outputs.cache-hit != 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -299,9 +342,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
+        if: steps.docker-cache.outputs.cache-hit != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
+        if: steps.docker-cache.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -309,30 +354,32 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-    outputs:
-      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   playwright:
     if: needs.build-and-publish.outputs.playwright_exists == 'true'
-    needs: [build-and-publish, bygg-app-for-playwright]
+    needs: [ build-and-publish, bygg-app-for-playwright ]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
       app-main:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports: ['3000:3000']
+        ports:
+          - "3000:3000"
         env:
-          NO_DECORATOR: 'true'
+          NO_DECORATOR: "true"
       app-decorator:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports: ['3001:3000']
+        ports:
+          - "3001:3000"
         env:
-          NO_DECORATOR: 'false'
+          NO_DECORATOR: "false"
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        shardIndex: [ 1, 2, 3, 4 ]
+        shardTotal: [ 4 ]
     steps:
       - name: cache workspace
         uses: actions/cache@v4
@@ -340,27 +387,29 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm ci
+      - name: Verify workspace restored
+        run: |
+          set -euo pipefail
+          if [ ! -f "package.json" ]; then
+            echo "Workspace cache failed - package.json not found"
+            exit 1
+          fi
+          if [ ! -d "node_modules" ]; then
+            echo "Workspace cache failed - node_modules not found"
+            exit 1
+          fi
+          echo "Workspace successfully restored"
 
       - name: Get Playwright version
         id: playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(node -e "
-            const pkg = require('./package-lock.json');
-            const version = pkg.packages?.['node_modules/@playwright/test']?.version ||
-                          pkg.dependencies?.['@playwright/test']?.version ||
-                          pkg.devDependencies?.['@playwright/test']?.version || '';
-            console.log(version);
-          ")
-          echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          PLAYWRIGHT_VERSION=$(node -e "const pkg=require('./package-lock.json'); const v=(pkg.packages&&pkg.packages['node_modules/@playwright/test']&&pkg.packages['node_modules/@playwright/test'].version)||(pkg.dependencies&&pkg.dependencies['@playwright/test']&&pkg.dependencies['@playwright/test'].version)||(pkg.devDependencies&&pkg.devDependencies['@playwright/test']&&pkg.devDependencies['@playwright/test'].version)||''; console.log(v);")
+          if [ -z "$PLAYWRIGHT_VERSION" ]; then
+            echo "Could not determine Playwright version"
+            exit 1
+          fi
+          echo "version=$PLAYWRIGHT_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright binaries
         uses: actions/cache@v4
@@ -368,27 +417,47 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
 
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps
 
       - name: Install Playwright system dependencies only
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
+        run: |
+          set -euo pipefail
+          npx playwright install-deps
 
       - name: Wait for services to be ready
         run: |
-          echo "Waiting for app-main on port 3000..."
-          timeout 60 bash -c 'until curl -f http://localhost:3000 > /dev/null 2>&1; do echo "Waiting..."; sleep 2; done' || echo "Warning: app-main might not be ready"
-
-          echo "Waiting for app-decorator on port 3001..."
-          timeout 60 bash -c 'until curl -f http://localhost:3001 > /dev/null 2>&1; do echo "Waiting..."; sleep 2; done' || echo "Warning: app-decorator might not be ready"
+          set -euo pipefail
+          wait_for_service() {
+            port="$1"
+            name="$2"
+            max_attempts=30
+            attempt=0
+            until curl -fsS "http://localhost:${port}" >/dev/null 2>&1 || [ "$attempt" -ge "$max_attempts" ]; do
+              attempt=$((attempt+1))
+              echo "Waiting for ${name} on port ${port} (${attempt}/${max_attempts})..."
+              sleep 2
+            done
+            curl -fsS "http://localhost:${port}" >/dev/null 2>&1 && echo "${name} is ready" || (echo "${name} failed to start" && exit 1)
+          }
+          wait_for_service 3000 "app-main"
+          wait_for_service 3001 "app-decorator"
 
       - name: Run Playwright tests
-        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: |
+          set -euo pipefail
+          echo "Running Playwright tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})"
+          npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
-          CI: true
+          CI: "true"
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: results-${{ matrix.shardIndex }}.xml
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -397,6 +466,7 @@ jobs:
           name: blob-report-${{ matrix.shardIndex }}
           path: blob-report
           retention-days: 1
+          compression-level: 9
 
       - name: Upload test artifacts on failure
         if: failure()
@@ -407,27 +477,43 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 7
+          compression-level: 6
           if-no-files-found: ignore
 
   playwright-rapport:
-    if: |
+    if: >
       !cancelled() &&
       !startsWith(github.ref_name, 'dependabot/') &&
       needs.build-and-publish.outputs.playwright_exists == 'true'
-    needs: [build-and-publish, playwright]
+    needs: [ build-and-publish, playwright ]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            package.json
+            package-lock.json
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+
+      - name: Cache Playwright CLI
+        uses: actions/cache@v4
+        id: playwright-cli-cache
+        with:
+          path: |
+            node_modules/@playwright
+            node_modules/.bin/playwright
+          key: playwright-cli-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install Playwright for report merging
+        if: steps.playwright-cli-cache.outputs.cache-hit != 'true'
         run: npm install -D @playwright/test
 
       - name: Last ned rapporter
@@ -437,8 +523,24 @@ jobs:
           pattern: blob-report-*
           merge-multiple: true
 
+      - name: Verify reports downloaded
+        run: |
+          set -euo pipefail
+          if [ ! -d "all-blob-reports" ] || [ -z "$(ls -A all-blob-reports || true)" ]; then
+            echo "No blob reports found, creating empty report placeholder"
+            mkdir -p all-blob-reports
+            echo '{"suites":[],"stats":{"expected":0,"unexpected":0,"skipped":0,"flaky":0,"duration":0}}' > all-blob-reports/empty.json
+          fi
+
       - name: Merge til HTML Report
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
+        run: |
+          set -euo pipefail
+          npx playwright merge-reports --reporter html ./all-blob-reports
+
+      - name: Merge til JSON rapport
+        run: |
+          set -euo pipefail
+          npx playwright merge-reports --reporter json ./all-blob-reports > playwright-report/report.json
 
       - name: Last opp til CDN
         uses: nais/deploy/actions/cdn-upload/v2@master
@@ -449,43 +551,55 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
-      - name: Merge til json rapport
-        run: npx playwright merge-reports --reporter json ./all-blob-reports > playwright-report/report.json
-
       - name: Lag GHA summary
         run: |
+          set -euo pipefail
+          if [ ! -f "playwright-report/report.json" ]; then
+            echo "No report.json found, skipping summary"
+            exit 0
+          fi
+
           total_tests=$(jq '.stats.expected + .stats.unexpected' playwright-report/report.json)
           passed_tests=$(jq '.stats.expected' playwright-report/report.json)
           failed_tests=$(jq '.stats.unexpected' playwright-report/report.json)
           skipped_tests=$(jq '.stats.skipped // 0' playwright-report/report.json)
           flaky_tests=$(jq '.stats.flaky // 0' playwright-report/report.json)
+          duration_ms=$(jq '.stats.duration // 0' playwright-report/report.json)
 
-          failed_test_info=$(jq -r '
-            .suites[].suites[]?.specs[]? |
-            select(.ok == false) |
-            "\(.title) (\(.file))"
-          ' playwright-report/report.json)
+          duration_min=$((duration_ms / 60000))
+          duration_sec=$(((duration_ms % 60000) / 1000))
 
-          echo "## 🎭 Playwright Test Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 📊 Total | $total_tests |" >> $GITHUB_STEP_SUMMARY
-          echo "| ✅ Passed | $passed_tests |" >> $GITHUB_STEP_SUMMARY
-          echo "| ❌ Failed | $failed_tests |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⏭️ Skipped | $skipped_tests |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔄 Flaky | $flaky_tests |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          failed_test_info=$(jq -r '.suites[]? .suites[]? .specs[]? | select(.ok == false) | "\(.title) (\(.file))"' playwright-report/report.json)
 
-          if [ "$failed_tests" -gt 0 ]; then
-            echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            while IFS= read -r test; do
-              [ -n "$test" ] && echo "- $test" >> $GITHUB_STEP_SUMMARY
-            done <<< "$failed_test_info"
-            echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Playwright Test Report"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| Total Tests | $total_tests |"
+            echo "| Passed | $passed_tests |"
+            echo "| Failed | $failed_tests |"
+            echo "| Skipped | $skipped_tests |"
+            echo "| Flaky | $flaky_tests |"
+            echo "| Duration | ${duration_min}m ${duration_sec}s |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$total_tests" -gt 0 ]; then
+            pass_rate=$(awk "BEGIN {printf \"%.1f\", ($passed_tests / $total_tests) * 100}")
+            echo "| Pass Rate | ${pass_rate}% |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 **[View Full HTML Report](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/index.html)**" >> $GITHUB_STEP_SUMMARY
+          if [ "$failed_tests" -gt 0 ]; then
+            echo "### Failed Tests" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r test; do
+              if [ -n "$test" ]; then
+                echo "- $test" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            done <<< "$failed_test_info"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "View Full HTML Report: https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/index.html" >> "$GITHUB_STEP_SUMMARY"
