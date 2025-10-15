@@ -287,7 +287,13 @@ jobs:
         if: steps.check-playwright.outputs.playwright_exists == 'true'
         id: playwright-version
         run: |
-          echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
+          echo "PLAYWRIGHT_VERSION=$(node -e "
+          const pkg = require('./package-lock.json');
+          const version = (pkg.dependencies && pkg.dependencies['@playwright/test']) ?
+            pkg.dependencies['@playwright/test'].version :
+            pkg.devDependencies['@playwright/test'].version;
+          console.log(version);
+          ")" >> $GITHUB_ENV
 
       - name: Cache Playwright binaries
         if: steps.check-playwright.outputs.playwright_exists == 'true'
@@ -373,7 +379,13 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: |
-          echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
+          echo "PLAYWRIGHT_VERSION=$(node -e "
+          const pkg = require('./package-lock.json');
+          const version = (pkg.dependencies && pkg.dependencies['@playwright/test']) ?
+            pkg.dependencies['@playwright/test'].version :
+            pkg.devDependencies['@playwright/test'].version;
+          console.log(version);
+          ")" >> $GITHUB_ENV
 
       - name: Restore Playwright cache
         uses: actions/cache@v4
