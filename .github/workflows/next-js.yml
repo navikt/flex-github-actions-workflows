@@ -211,7 +211,8 @@ jobs:
           category: "/language:javascript"
 
   nais-deploy:
-    needs: [build-and-publish, cypress, playwright, cdn-upload, gar-publish, unit-test]
+    if: always() && !cancelled() && !failure()
+    needs: [build-and-publish, cypress, playwright, cdn-upload, gar-publish, lint, unit-test, install-playwright]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
     with:
       image: ${{ needs.gar-publish.outputs.image }}
@@ -283,6 +284,12 @@ jobs:
             echo "playwright_exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Install dependencies
+        if: steps.check-playwright.outputs.playwright_exists == 'true'
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm ci
+
       - name: Get Playwright version
         if: steps.check-playwright.outputs.playwright_exists == 'true'
         id: playwright-version
@@ -303,11 +310,6 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      - name: Install dependencies
-        if: steps.check-playwright.outputs.playwright_exists == 'true'
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm ci
 
       - name: Install Playwright browsers
         if: steps.check-playwright.outputs.playwright_exists == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
