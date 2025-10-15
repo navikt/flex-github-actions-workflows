@@ -326,7 +326,7 @@ jobs:
       image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
   playwright:
-    needs: [ build-and-publish, install-playwright ]
+    needs: [ build-and-publish, install-playwright, bygg-app-for-playwright ]
     runs-on: ubuntu-latest
     services:
       app-main:
