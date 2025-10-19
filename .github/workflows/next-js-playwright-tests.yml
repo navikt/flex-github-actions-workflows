@@ -1,4 +1,3 @@
-# file: .github/workflows/nextjs/playwright-tests.yml
 name: E2E Tests - Playwright
 on:
   workflow_call:

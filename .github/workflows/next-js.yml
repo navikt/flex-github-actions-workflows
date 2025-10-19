@@ -26,7 +26,7 @@ on:
 jobs:
   # Build, lint, test and check for Playwright
   build-and-test:
-    uses: ./.github/workflows/nextjs/build-and-test.yml
+    uses: ./.github/workflows/next-js-build-and-test.yml
     with:
       node-version: ${{ inputs.node-version }}
     secrets: inherit
@@ -34,7 +34,7 @@ jobs:
   # Run Cypress tests
   cypress-tests:
     needs: [build-and-test]
-    uses: ./.github/workflows/nextjs/cypress-tests.yml
+    uses: ./.github/workflows/next-js-cypress-tests.yml
     with:
       port: ${{ inputs.port }}
       base-path: ${{ inputs.base-path }}
@@ -43,14 +43,14 @@ jobs:
   # Build and publish Docker images and CDN assets
   build-and-publish:
     needs: [build-and-test]
-    uses: ./.github/workflows/nextjs/build-and-publish.yml
+    uses: ./.github/workflows/next-js-build-and-publish.yml
     secrets: inherit
 
   # Run Playwright tests if they exist
   playwright-tests:
     needs: [build-and-test, build-and-publish]
     if: needs.build-and-test.outputs.playwright_exists == 'true'
-    uses: ./.github/workflows/nextjs/playwright-tests.yml
+    uses: ./.github/workflows/next-js-playwright-tests.yml
     with:
       playwright_exists: ${{ needs.build-and-test.outputs.playwright_exists == 'true' }}
     secrets: inherit
@@ -68,7 +68,7 @@ jobs:
   # Deploy demo environments
   deploy-demo:
     needs: [build-and-test, build-and-publish]
-    uses: ./.github/workflows/nextjs/deploy-demo.yml
+    uses: ./.github/workflows/next-js-deploy-demo.yml
     with:
       app: ${{ inputs.app }}
       base-path: ${{ inputs.base-path }}
