@@ -1,0 +1,263 @@
+# file: .github/workflows/nextjs/playwright-tests.yml
+name: E2E Tests - Playwright
+on:
+  workflow_call:
+    inputs:
+      playwright_exists:
+        required: true
+        type: boolean
+
+jobs:
+  bygg-app-for-playwright:
+    if: inputs.playwright_exists == true
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    env:
+      IMAGE_NAME: ${{ github.repository }}-e2e
+      REGISTRY: ghcr.io
+    outputs:
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      cache-hit: ${{ steps.docker-cache.outputs.cache-hit }}
+    steps:
+      - name: Check if image exists
+        id: docker-cache
+        run: |
+          if docker manifest inspect "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >/dev/null 2>&1; then
+            echo "cache-hit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cache-hit=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore workspace
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Set up Docker Buildx
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: BUILDKIT_INLINE_CACHE=1
+
+  # New job to prepare Playwright once for all shards
+  prepare-playwright:
+    if: inputs.playwright_exists == true
+    runs-on: ubuntu-latest
+    outputs:
+      playwright-version: ${{ steps.playwright-version.outputs.version }}
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Restore workspace
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: |
+          PLAYWRIGHT_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test']?.version || ''")
+          echo "version=$PLAYWRIGHT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "key=playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Check Playwright cache
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.cache-key.outputs.key }}
+          lookup-only: true
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Save Playwright cache
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.cache-key.outputs.key }}
+
+  playwright:
+    if: inputs.playwright_exists == true
+    needs: [bygg-app-for-playwright, prepare-playwright]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      app-main:
+        image: ${{ needs.bygg-app-for-playwright.outputs.image }}
+        ports:
+          - "3000:3000"
+        env:
+          NO_DECORATOR: "true"
+      app-decorator:
+        image: ${{ needs.bygg-app-for-playwright.outputs.image }}
+        ports:
+          - "3001:3000"
+        env:
+          NO_DECORATOR: "false"
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
+    steps:
+      - name: Restore workspace
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Restore Playwright cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ needs.prepare-playwright.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Install Playwright system dependencies only
+        run: npx playwright install-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        env:
+          CI: "true"
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: blob-report
+          retention-days: 1
+          compression-level: 9
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ matrix.shardIndex }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          compression-level: 6
+          if-no-files-found: ignore
+
+  playwright-rapport:
+    if: ${{ !cancelled() && inputs.playwright_exists == true }}
+    needs: [playwright]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            package.json
+            package-lock.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Playwright
+        run: npm install -D @playwright/test
+
+      - name: Download reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Merge reports
+        run: |
+          npx playwright merge-reports --reporter html ./all-blob-reports
+          npx playwright merge-reports --reporter json ./all-blob-reports > playwright-report/report.json
+
+      - name: Upload to CDN
+        uses: nais/deploy/actions/cdn-upload/v2@master
+        with:
+          team: flex
+          source: playwright-report
+          destination: /${{ github.repository }}/${{ github.run_number }}
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
+      - name: Generate summary
+        if: always()
+        run: |
+          if [ ! -f "playwright-report/report.json" ]; then
+            echo "⚠️ No test report found" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          report="playwright-report/report.json"
+
+          total=$(jq '.stats.expected + .stats.unexpected' "$report")
+          passed=$(jq '.stats.expected' "$report")
+          failed=$(jq '.stats.unexpected' "$report")
+          skipped=$(jq '.stats.skipped // 0' "$report")
+          flaky=$(jq '.stats.flaky // 0' "$report")
+          duration_ms=$(jq '.stats.duration // 0' "$report")
+
+          duration_min=$((duration_ms / 60000))
+          duration_sec=$(((duration_ms % 60000) / 1000))
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🎭 Playwright Test Report
+
+          | Metric | Value |
+          |--------|-------|
+          | Total Tests | $total |
+          | ✅ Passed | $passed |
+          | ❌ Failed | $failed |
+          | ⏭️ Skipped | $skipped |
+          | 🔄 Flaky | $flaky |
+          | ⏱️ Duration | ${duration_min}m ${duration_sec}s |
+          EOF
+
+          if [ "$total" -gt 0 ]; then
+            pass_rate=$(awk "BEGIN {printf \"%.1f\", ($passed / $total) * 100}")
+            echo "| 📊 Pass Rate | ${pass_rate}% |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$failed" -gt 0 ]; then
+            echo -e "\n### ❌ Failed Tests\n" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.suites[]?.suites[]?.specs[]? | select(.ok == false) | "- \(.title) (\(.file))"' "$report" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo -e "\n📄 [View Full Report](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/index.html)" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,61 @@
+name: Deploy Demo Environments
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: false
+        default: ${{ github.event.repository.name }}
+        type: string
+      base-path:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+
+jobs:
+  deploy-demo-branch-til-dev-gcp:
+    if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
+    name: Deploy demo branch til dev-gcp
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    env:
+      DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
+      DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy demo branch til dev-gcp
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: nais/app/demo.yaml
+          IMAGE: ${{ inputs.image }}
+          VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}},TTL_HOURS=168h
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@c33737706dea87cd7784c687dadc9adf1be59990
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_MESSAGE: "Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{inputs.base-path}}"
+          SLACK_TITLE: ${{ github.ref_name }}
+          SLACK_USERNAME: Demo deploy
+          SLACK_ICON: ":lab_coat:"
+          SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
+
+  deploy-demo-til-dev-gcp:
+    if: github.ref_name == 'main'
+    name: Deploy demo til dev-gcp
+    timeout-minutes: 15
+    concurrency: deploy-demo-til-dev-gcp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy til dev-gcp
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: nais/app/demo.yaml
+          IMAGE: ${{ inputs.image }}
+          VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
