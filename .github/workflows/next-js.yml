@@ -319,7 +319,6 @@ jobs:
         run: |
           NO_DECORATOR=true npm run start -- -p 3000 &
           NO_DECORATOR=false npm run start -- -p 3001 &
-          npx wait-on http://localhost:3000/${{inputs.base-path}}/api/internal/isAlive http://localhost:3001/${{inputs.base-path}}/api/internal/isAlive -t 60000
         env:
           MOCK_BACKEND: 'true'
 
