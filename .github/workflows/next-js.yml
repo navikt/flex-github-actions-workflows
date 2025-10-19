@@ -263,94 +263,131 @@ jobs:
           IMAGE: ${{ needs.gar-publish.outputs.image }}
           VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
 
-
-  bygg-app-for-playwright:
+  get-playwright-version:
+    needs: build-and-publish
     runs-on: ubuntu-latest
-    needs: [build-and-publish]
-    env:
-      IMAGE_NAME: ${{ github.repository }}-e2e
-      REGISTRY: ghcr.io
+    outputs:
+      version: ${{ steps.playwright-version.outputs.version }}
     steps:
       - name: cache workspace
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-    outputs:
-      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Hent Playwright versjon
+        id: playwright-version
+        run: |
+          PLAYWRIGHT_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test']?.version || ''")
+          echo "version=$PLAYWRIGHT_VERSION" >> "$GITHUB_OUTPUT"
 
   playwright:
-    needs: [bygg-app-for-playwright]
+    needs: [ build-and-publish, get-playwright-version ]
     runs-on: ubuntu-latest
-    services:
-      app-main:
-        image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports: [ '3000:3000' ]
-        env:
-          NO_DECORATOR: 'true'
-      app-decorator:
-        image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports: [ '3001:3000' ]
-        env:
-          NO_DECORATOR: 'false'
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.get-playwright-version.outputs.version }}-jammy
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        shardIndex: [ 1, 2, 3, 4 ]
+        shardTotal: [ 4 ]
     steps:
       - name: cache workspace
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Run Playwright
+
+      - name: Starter Next.js servere
+        run: |
+          NO_DECORATOR=true PORT=3000 npm run start &
+          NO_DECORATOR=false PORT=3001 npm run start &
+          npx wait-on http://localhost:3000 http://localhost:3001 -t 60000
+        env:
+          HOME: /root
+
+      - name: Kjør Playwright
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-      - name: Upload blob report to GitHub Actions Artifacts
+        env:
+          CI: "true"
+          HOME: /root
+
+      - name: Last opp blob report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: blob-report-${{ matrix.shardIndex }}
           path: blob-report
           retention-days: 1
+          compression-level: 9
+
+      - name: Last opp test artifacter på feil
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ matrix.shardIndex }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          compression-level: 6
+          if-no-files-found: ignore
 
   playwright-rapport:
     if: ${{ !cancelled() && !startsWith(github.ref_name, 'dependabot/') }}
-    needs: [playwright]
+    needs: [ playwright ]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: 'read'
       id-token: 'write'
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            package.json
+            package-lock.json
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+
+      - name: Installer Playwright
+        run: npm install -D @playwright/test
 
       - name: Last ned rapporter
+        id: download-reports
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           path: all-blob-reports
           pattern: blob-report-*
           merge-multiple: true
 
       - name: Merge til HTML Report
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
+        if: steps.download-reports.outcome == 'success'
+        run: |
+          if [ -d "all-blob-reports" ] && [ -n "$(ls -A all-blob-reports 2>/dev/null || true)" ]; then
+            npx playwright merge-reports --reporter html ./all-blob-reports
+            npx playwright merge-reports --reporter json ./all-blob-reports > playwright-report/report.json
+          fi
+
+      - name: Lag fallback rapport
+        if: steps.download-reports.outcome != 'success' || !hashFiles('playwright-report/index.html')
+        run: |
+          mkdir -p playwright-report
+          cat > playwright-report/index.html <<EOF
+          <!DOCTYPE html>
+          <html>
+          <head><title>No Test Results</title></head>
+          <body>
+            <h1>⚠️ No Playwright test results available</h1>
+            <p>Tests may have failed to run or reports were not generated.</p>
+          </body>
+          </html>
+          EOF
+          echo '{"suites":[],"stats":{"expected":0,"unexpected":0,"skipped":0,"flaky":0,"duration":0}}' > playwright-report/report.json
 
       - name: Last opp til CDN
         uses: nais/deploy/actions/cdn-upload/v2@master
@@ -361,28 +398,55 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
 
-      - name: Merge til json rapport
-        run: npx playwright merge-reports --reporter json  ./all-blob-reports > playwright-report/report.json
-
-      - name: Lag GHA summary
+      - name: Generer oppsummering av testresultater
+        if: always()
         run: |
-          total_tests=$(jq '.stats.expected + .stats.unexpected' playwright-report/report.json)
-          passed_tests=$(jq '.stats.expected' playwright-report/report.json)
-          failed_tests=$(jq '.stats.unexpected' playwright-report/report.json)
-          failed_test_info=$(jq -r '.suites[].suites[].specs[] | select(.ok == false) | "\(.title) (\(.file), \(.tests[].projectName))"' playwright-report/report.json)
-
-          echo "## Playwright Test Report Summary" >> $GITHUB_STEP_SUMMARY
-          echo "Total tests: $total_tests ✅" >> $GITHUB_STEP_SUMMARY
-          echo "Passed tests: $passed_tests ✅" >> $GITHUB_STEP_SUMMARY
-
-          if [ "$failed_tests" -gt 0 ]; then
-            echo "Failed tests: $failed_tests ❌" >> $GITHUB_STEP_SUMMARY
-            echo "### Failed Tests:" >> $GITHUB_STEP_SUMMARY
-            while IFS= read -r test; do
-              echo "- $test ❌" >> $GITHUB_STEP_SUMMARY
-            done <<< "$failed_test_info"
-          else
-            echo "Failed tests: $failed_tests 🔹" >> $GITHUB_STEP_SUMMARY
+          if [ ! -f "playwright-report/report.json" ]; then
+            echo "⚠️ No test report available" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
 
-          echo "Se hele rapporten [her](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/playwright-report/index.html)." >> $GITHUB_STEP_SUMMARY
+          report="playwright-report/report.json"
+
+          total=$(jq '.stats.expected + .stats.unexpected' "$report")
+
+          if [ "$total" -eq 0 ]; then
+            echo "⚠️ No tests were executed" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "📄 [View Report](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/index.html)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          passed=$(jq '.stats.expected' "$report")
+          failed=$(jq '.stats.unexpected' "$report")
+          skipped=$(jq '.stats.skipped // 0' "$report")
+          flaky=$(jq '.stats.flaky // 0' "$report")
+          duration_ms=$(jq '.stats.duration // 0' "$report")
+
+          duration_min=$((duration_ms / 60000))
+          duration_sec=$(((duration_ms % 60000) / 1000))
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🎭 Playwright Test Report
+
+          | Metric | Value |
+          |--------|-------|
+          | Total Tests | $total |
+          | ✅ Passed | $passed |
+          | ❌ Failed | $failed |
+          | ⏭️ Skipped | $skipped |
+          | 🔄 Flaky | $flaky |
+          | ⏱️ Duration | ${duration_min}m ${duration_sec}s |
+          EOF
+
+          if [ "$total" -gt 0 ]; then
+            pass_rate=$(awk "BEGIN {printf \"%.1f\", ($passed / $total) * 100}")
+            echo "| 📊 Pass Rate | ${pass_rate}% |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$failed" -gt 0 ]; then
+            echo -e "\n### ❌ Failed Tests\n" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.suites[]?.suites[]?.specs[]? | select(.ok == false) | "- \(.title) (\(.file), \(.tests[0].projectName))"' "$report" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo -e "\n📄 [View Full Report](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/index.html)" >> "$GITHUB_STEP_SUMMARY"
