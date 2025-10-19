@@ -330,19 +330,6 @@ jobs:
           name: blob-report-${{ matrix.shardIndex }}
           path: blob-report
           retention-days: 1
-          compression-level: 9
-
-      - name: Last opp test artifacter på feil
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-artifacts-${{ matrix.shardIndex }}
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
-          compression-level: 6
-          if-no-files-found: ignore
 
   playwright-rapport:
     if: ${{ !cancelled() && !startsWith(github.ref_name, 'dependabot/') }}
