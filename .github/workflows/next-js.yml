@@ -283,8 +283,6 @@ jobs:
   playwright:
     needs: [ build-and-publish, get-playwright-version ]
     runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright:v${{ needs.get-playwright-version.outputs.version }}-jammy
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -298,19 +296,31 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
 
-      - name: Starter Next.js servere
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ needs.get-playwright-version.outputs.version }}
+
+      - name: Install Playwright
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright deps only
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
+      - name: Start Next.js servers
         run: |
           NO_DECORATOR=true PORT=3000 npm run start &
           NO_DECORATOR=false PORT=3001 npm run start &
           npx wait-on http://localhost:3000 http://localhost:3001 -t 60000
-        env:
-          HOME: /root
 
       - name: Kjør Playwright
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           CI: "true"
-          HOME: /root
 
       - name: Last opp blob report
         if: ${{ !cancelled() }}
@@ -446,7 +456,7 @@ jobs:
 
           if [ "$failed" -gt 0 ]; then
             echo -e "\n### ❌ Failed Tests\n" >> "$GITHUB_STEP_SUMMARY"
-            jq -r '.suites[]?.suites[]?.specs[]? | select(.ok == false) | "- \(.title) (\(.file), \(.tests[0].projectName))"' "$report" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.suites[]?.suites[]?.specs[]? | select(.ok == false) | "- \(.title) (\(.file), \(.tests[0].projectName // "unknown"))"' "$report" >> "$GITHUB_STEP_SUMMARY"
           fi
 
           echo -e "\n📄 [View Full Report](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/index.html)" >> "$GITHUB_STEP_SUMMARY"
