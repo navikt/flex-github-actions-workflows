@@ -1,0 +1,63 @@
+name: Build and Publish
+on:
+  workflow_call:
+    outputs:
+      image:
+        description: "Published Docker image"
+        value: ${{ jobs.gar-publish.outputs.image }}
+
+jobs:
+  cdn-upload:
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+
+      - name: Last opp static files til NAV CDN
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') || startsWith(github.ref_name, 'demo-')
+        uses: nais/deploy/actions/cdn-upload/v2@master
+        with:
+          team: flex
+          source: ./.next/static
+          destination: /${{github.event.repository.name}}/_next
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
+  gar-publish:
+    permissions:
+      packages: read
+      contents: read
+      id-token: write
+    name: gar-publish
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+
+      - name: prune dev dependencies
+        run: npm prune --production
+
+      - run: rm .env || true
+      - run: touch .env
+
+      - name: docker-build-push
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') || startsWith(github.ref_name, 'demo-')
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: flex
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}

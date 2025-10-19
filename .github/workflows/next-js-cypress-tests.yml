@@ -1,0 +1,59 @@
+name: E2E Tests - Cypress
+on:
+  workflow_call:
+    inputs:
+      port:
+        required: false
+        default: "8080"
+        type: string
+      base-path:
+        required: true
+        type: string
+
+jobs:
+  cypress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: [ 0, 1, 2, 3 ]
+    steps:
+      - name: cache workspace
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}
+          key: ${{ github.sha }}
+
+      - name: cache cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+
+      - name: Sjekk om cypress eksisterer
+        run: |
+          if [ -d "./cypress" ]; then
+            echo "cypress_exists=true" >> "$GITHUB_ENV"
+          else
+            echo "cypress_exists=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Kjør cypress
+        if: env.cypress_exists == 'true'
+        uses: cypress-io/github-action@v6.10.2
+        with:
+          start: npm run start-ingen-dekorator
+          wait-on: http://localhost:${{inputs.port}}/${{inputs.base-path}}/api/internal/isAlive
+          config-file: cypress.config.ts
+          spec: cypress/e2e/run-${{ matrix.containers }}/**
+          install: false
+        env:
+          MOCK_BACKEND: "true"
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
