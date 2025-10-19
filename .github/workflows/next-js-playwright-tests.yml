@@ -60,13 +60,11 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: BUILDKIT_INLINE_CACHE=1
 
-  # New job to prepare Playwright once for all shards
-  prepare-playwright:
+  get-playwright-version:
     if: inputs.playwright_exists == true
     runs-on: ubuntu-latest
     outputs:
-      playwright-version: ${{ steps.playwright-version.outputs.version }}
-      cache-key: ${{ steps.cache-key.outputs.key }}
+      version: ${{ steps.playwright-version.outputs.version }}
     steps:
       - name: Restore workspace
         uses: actions/cache/restore@v4
@@ -81,46 +79,20 @@ jobs:
           PLAYWRIGHT_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test']?.version || ''")
           echo "version=$PLAYWRIGHT_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Generate cache key
-        id: cache-key
-        run: |
-          echo "key=playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}" >> "$GITHUB_OUTPUT"
-
-      - name: Check Playwright cache
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.cache-key.outputs.key }}
-          lookup-only: true
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-
-      - name: Save Playwright cache
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.cache-key.outputs.key }}
-
   playwright:
     if: inputs.playwright_exists == true
-    needs: [bygg-app-for-playwright, prepare-playwright]
+    needs: [bygg-app-for-playwright, get-playwright-version]
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.get-playwright-version.outputs.version }}-jammy
     timeout-minutes: 20
     services:
       app-main:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports:
-          - "3000:3000"
         env:
           NO_DECORATOR: "true"
       app-decorator:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
-        ports:
-          - "3001:3000"
         env:
           NO_DECORATOR: "false"
     strategy:
@@ -136,20 +108,11 @@ jobs:
           key: ${{ github.sha }}
           fail-on-cache-miss: true
 
-      - name: Restore Playwright cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ needs.prepare-playwright.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Install Playwright system dependencies only
-        run: npx playwright install-deps
-
       - name: Run Playwright tests
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           CI: "true"
+          HOME: /root
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -174,7 +137,7 @@ jobs:
 
   playwright-rapport:
     if: ${{ !cancelled() && inputs.playwright_exists == true }}
-    needs: [ playwright ]
+    needs: [playwright]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
