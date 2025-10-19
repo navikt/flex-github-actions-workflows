@@ -313,8 +313,8 @@ jobs:
 
       - name: Start Next.js servers
         run: |
-          NO_DECORATOR=true PORT=3000 npm run start &
-          NO_DECORATOR=false PORT=3001 npm run start &
+          NO_DECORATOR=true npm run start -- -p 3000 &
+          NO_DECORATOR=false npm run start -- -p 3001 &
           npx wait-on http://localhost:3000 http://localhost:3001 -t 60000
 
       - name: Kjør Playwright
