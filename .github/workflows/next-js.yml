@@ -303,9 +303,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ needs.get-playwright-version.outputs.version }}
 
-      - name: Installer Playwright
+      - name: Installer Playwright browsere
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+        run: npx playwright install
+
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps
 
       - name: Start Next.js servere
         run: |
