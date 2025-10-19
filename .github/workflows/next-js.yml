@@ -296,19 +296,25 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
 
-      - name: Cache Playwright browsers
+      - name: Cache Playwright browsers and deps marker
         uses: actions/cache@v4
         id: playwright-cache
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ needs.get-playwright-version.outputs.version }}
+          path: |
+            ~/.cache/ms-playwright
+            ~/.playwright-deps-installed
+          key: playwright-browsers-and-deps-${{ runner.os }}-${{ needs.get-playwright-version.outputs.version }}
 
       - name: Installer Playwright browsere
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install
 
-      - name: Install Playwright system dependencies
-        run: npx playwright install-deps
+      - name: Installer Playwright system avhengigheter
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo npx playwright install-deps
+          mkdir -p ~/.playwright-deps-installed
+          touch ~/.playwright-deps-installed/marker
 
       - name: Start Next.js servere
         run: |
