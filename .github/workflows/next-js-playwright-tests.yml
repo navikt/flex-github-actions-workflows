@@ -174,7 +174,7 @@ jobs:
 
   playwright-rapport:
     if: ${{ !cancelled() && inputs.playwright_exists == true }}
-    needs: [playwright]
+    needs: [ playwright ]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -196,16 +196,37 @@ jobs:
         run: npm install -D @playwright/test
 
       - name: Download reports
+        id: download-reports
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           path: all-blob-reports
           pattern: blob-report-*
           merge-multiple: true
 
       - name: Merge reports
+        if: steps.download-reports.outcome == 'success'
         run: |
-          npx playwright merge-reports --reporter html ./all-blob-reports
-          npx playwright merge-reports --reporter json ./all-blob-reports > playwright-report/report.json
+          if [ -d "all-blob-reports" ] && [ -n "$(ls -A all-blob-reports 2>/dev/null || true)" ]; then
+            npx playwright merge-reports --reporter html ./all-blob-reports
+            npx playwright merge-reports --reporter json ./all-blob-reports > playwright-report/report.json
+          fi
+
+      - name: Create fallback report
+        if: steps.download-reports.outcome != 'success' || !hashFiles('playwright-report/index.html')
+        run: |
+          mkdir -p playwright-report
+          cat > playwright-report/index.html <<EOF
+          <!DOCTYPE html>
+          <html>
+          <head><title>No Test Results</title></head>
+          <body>
+            <h1>⚠️ No Playwright test results available</h1>
+            <p>Tests may have failed to run or reports were not generated.</p>
+          </body>
+          </html>
+          EOF
+          echo '{"suites":[],"stats":{"expected":0,"unexpected":0,"skipped":0,"flaky":0,"duration":0}}' > playwright-report/report.json
 
       - name: Upload to CDN
         uses: nais/deploy/actions/cdn-upload/v2@master
@@ -220,13 +241,21 @@ jobs:
         if: always()
         run: |
           if [ ! -f "playwright-report/report.json" ]; then
-            echo "⚠️ No test report found" >> "$GITHUB_STEP_SUMMARY"
+            echo "⚠️ No test report available" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
           report="playwright-report/report.json"
 
           total=$(jq '.stats.expected + .stats.unexpected' "$report")
+
+          if [ "$total" -eq 0 ]; then
+            echo "⚠️ No tests were executed" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "📄 [View Report](https://cdn.nav.no/flex/${{ github.repository }}/${{ github.run_number }}/index.html)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
           passed=$(jq '.stats.expected' "$report")
           failed=$(jq '.stats.unexpected' "$report")
           skipped=$(jq '.stats.skipped // 0' "$report")
