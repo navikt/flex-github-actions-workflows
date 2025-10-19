@@ -283,6 +283,8 @@ jobs:
   playwright:
     needs: [ build-and-publish, get-playwright-version ]
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.get-playwright-version.outputs.version }}-jammy
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -296,26 +298,6 @@ jobs:
           path: ${{ github.workspace }}
           key: ${{ github.sha }}
 
-      - name: Cache Playwright browsers and deps marker
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: |
-            ~/.cache/ms-playwright
-            ~/.playwright-deps-installed
-          key: playwright-browsers-and-deps-${{ runner.os }}-${{ needs.get-playwright-version.outputs.version }}
-
-      - name: Installer Playwright browsere
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install
-
-      - name: Installer Playwright system avhengigheter
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          sudo npx playwright install-deps
-          mkdir -p ~/.playwright-deps-installed
-          touch ~/.playwright-deps-installed/marker
-
       - name: Start Next.js servere
         run: |
           NO_DECORATOR=true npm run start -- -p 3000 &
@@ -328,6 +310,7 @@ jobs:
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           CI: "true"
+          HOME: /root
 
       - name: Last opp blob report
         if: ${{ !cancelled() }}
