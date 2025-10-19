@@ -303,21 +303,11 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ needs.get-playwright-version.outputs.version }}
 
-      - name: Install Playwright
+      - name: Installer Playwright
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
 
-      - name: Install Playwright deps only
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
-
-      - name: Start Next.js servers
-        run: |
-          NO_DECORATOR=true npm run start -- -p 3000 &
-          NO_DECORATOR=false npm run start -- -p 3001 &
-          npx wait-on http://localhost:3000 http://localhost:3001 -t 60000
-
-      - name: Kjør Playwright
+      - name: Kjør Playwright tester
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           CI: "true"
