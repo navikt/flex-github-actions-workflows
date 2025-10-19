@@ -307,6 +307,14 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
 
+      - name: Start Next.js servere
+        run: |
+          NO_DECORATOR=true npm run start -- -p 3000 &
+          NO_DECORATOR=false npm run start -- -p 3001 &
+          npx wait-on http://localhost:3000/${{inputs.base-path}}/api/internal/isAlive http://localhost:3001/${{inputs.base-path}}/api/internal/isAlive -t 60000
+        env:
+          MOCK_BACKEND: 'true'
+
       - name: Kjør Playwright tester
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
