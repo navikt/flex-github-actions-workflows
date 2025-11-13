@@ -47,12 +47,12 @@ vil deployes til dev-gcp. main branchen vil deployes til prod-gcp og dev-gcp.
 
 ## Next.js Workflow
 
-Denne bruker av next.js apper som er eksponert på nav.no. Denne er omfattende og inkluderer cypress testing.
+Denne bruker av next.js apper som er eksponert på nav.no. Denne er omfattende og inkluderer playwright testing.
 
 ## Next.js lightweight Workflow
 
 Brukes av lettvekts next.js apper som ikke er eksponert på nav.no. Denne er enklere enn den over, og har f.eks. ikke
-cypress.
+playwright.
 
 ## Spring Boot Workflow
 
