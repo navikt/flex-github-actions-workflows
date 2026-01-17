@@ -40,7 +40,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -137,7 +137,7 @@ jobs:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
       DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Deploy demo branch til dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
