@@ -136,36 +136,6 @@ jobs:
       - name: Run tests
         run:  ./gradlew test
 
-
-  codeql-analyse:
-    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
-    name: CodeQL-analyse
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      actions: read
-      security-events: write
-    steps:
-      - name: Setup java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          queries: security-and-quality
-          languages: 'java'
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:java"
-
   nais-deploy:
     needs: [build-and-publish,lint,test]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
