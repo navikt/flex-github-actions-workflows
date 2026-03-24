@@ -293,7 +293,7 @@ jobs:
           node-version: 24
 
       - name: Last ned rapporter
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: all-blob-reports
           pattern: blob-report-*
