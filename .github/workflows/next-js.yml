@@ -272,7 +272,7 @@ jobs:
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: blob-report-${{ matrix.shardIndex }}
           path: blob-report
