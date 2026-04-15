@@ -28,6 +28,8 @@ jobs:
     name: Bygg, test og publiser docker image
     timeout-minutes: 15
     runs-on: ubuntu-latest
+    outputs:
+      playwright-version: ${{ steps.playwright-version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -47,16 +49,19 @@ jobs:
         run: npm ci
       - name: Build application
         run: npm run build
+      - name: Hent Playwright versjon
+        id: playwright-version
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> $GITHUB_OUTPUT
       - name: cache workspace
         uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}
-          key: ${{ github.sha }}
+          key: workspace-${{ github.sha }}
 
   cdn-upload:
     permissions:
-      contents: 'read'
-      id-token: 'write'
+       contents: 'read'
+       id-token: 'write'
     timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
@@ -65,7 +70,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}
-          key: ${{ github.sha }}
+          key: workspace-${{ github.sha }}
       - name: Last opp static files til NAV CDN
         if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
         uses: nais/deploy/actions/cdn-upload/v2@master
@@ -92,7 +97,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}
-          key: ${{ github.sha }}
+          key: workspace-${{ github.sha }}
       - name: prune dev dependencies
         run: npm prune --production
       - run: rm .env
@@ -116,7 +121,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}
-          key: ${{ github.sha }}
+          key: workspace-${{ github.sha }}
       - name: Run prettier
         run: npm run prettier:check
       - name: Run lint
@@ -132,7 +137,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}
-          key: ${{ github.sha }}
+          key: workspace-${{ github.sha }}
       - name: Run tests
         run: npm run test:ci
 
@@ -225,7 +230,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}
-          key: ${{ github.sha }}
+          key: workspace-${{ github.sha }}
       - name: Log in to the Container registry
         uses: docker/login-action@v4
         with:
@@ -241,33 +246,12 @@ jobs:
     outputs:
       image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-  playwright-install-browsers:
-    needs: [build-and-publish]
-    runs-on: ubuntu-latest
-    steps:
-      - name: cache workspace
-        uses: actions/cache@v5
-        with:
-          path: ${{ github.workspace }}
-          key: ${{ github.sha }}
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(npx playwright --version | awk '{print $NF}')" >> $GITHUB_OUTPUT
-      - name: Cache Playwright browsers
-        uses: actions/cache@v5
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-    outputs:
-      playwright-version: ${{ steps.playwright-version.outputs.version }}
-
   playwright:
-    needs: [bygg-app-for-playwright, playwright-install-browsers]
+    needs: [build-and-publish, bygg-app-for-playwright]
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.build-and-publish.outputs.playwright-version }}-noble
+      options: --user 1001
     services:
       app-main:
         image: ${{ needs.bygg-app-for-playwright.outputs.image }}
@@ -285,27 +269,17 @@ jobs:
         shardIndex: [1, 2, 3, 4]
         shardTotal: [4]
     steps:
-      - name: Cache workspace
-        uses: actions/cache@v5
-        with:
-          path: ${{ github.workspace }}
-          key: workspace-${{ hashFiles('**/package-lock.json') }}
-      - name: Cache Playwright browsers
-        uses: actions/cache@v5
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ needs.playwright-install-browsers.outputs.playwright-version }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-      - name: Install Playwright system dependencies
-        run: npx playwright install-deps
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install
+      - uses: actions/checkout@v6
+      - name: Installer npm avhengigheter
+        run: npm ci
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Playwright
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-      - name: Upload Playwright report to GitHub Actions Artifacts
+        env:
+          APP_BASEURL: http://app-main:3000
+          APP_DECORATOR_BASEURL: http://app-decorator:3000
+      - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
