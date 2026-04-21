@@ -1,5 +1,3 @@
-# Apper som bruker denne https://cs.github.com/?scopeName=All+repos&scope=&q=org%3Anavikt+%22navikt%2Fflex-github-actions-workflows%2F.github%2Fworkflows%2Fnext-js.yml%40main%22+NOT+is%3Aarchived
-
 name: Next js
 on:
   workflow_call:
@@ -60,8 +58,8 @@ jobs:
 
   cdn-upload:
     permissions:
-       contents: 'read'
-       id-token: 'write'
+      contents: 'read'
+      id-token: 'write'
     timeout-minutes: 15
     needs: build-and-publish
     runs-on: ubuntu-latest
@@ -72,7 +70,7 @@ jobs:
           path: ${{ github.workspace }}
           key: workspace-${{ github.sha }}
       - name: Last opp static files til NAV CDN
-        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') || startsWith(github.ref_name, 'demo-')
         uses: nais/deploy/actions/cdn-upload/v2@master
         with:
           team: flex
@@ -103,7 +101,7 @@ jobs:
       - run: rm .env
       - run: touch .env
       - name: docker-build-push
-        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')  || startsWith(github.ref_name, 'demo-')
+        if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-') || startsWith(github.ref_name, 'demo-')
         uses: nais/docker-build-push@v0
         id: docker-build-push
         with:
@@ -163,10 +161,10 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:javascript"
+          category: '/language:javascript'
 
   nais-deploy:
-    needs: [build-and-publish, playwright, cdn-upload, gar-publish, unit-test]
+    needs: [ build-and-publish, playwright, cdn-upload, gar-publish, unit-test ]
     uses: navikt/flex-github-actions-workflows/.github/workflows/nais-deploy-dev-og-prod.yml@main
     with:
       image: ${{ needs.gar-publish.outputs.image }}
@@ -177,7 +175,7 @@ jobs:
     if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
     name: Deploy demo branch til dev-gcp
     timeout-minutes: 15
-    needs: [build-and-publish, cdn-upload, gar-publish]
+    needs: [ build-and-publish, cdn-upload, gar-publish ]
     runs-on: ubuntu-latest
     env:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
@@ -205,7 +203,7 @@ jobs:
     if: github.ref_name == 'main'
     name: Deploy demo til dev-gcp
     timeout-minutes: 15
-    needs: [build-and-publish, cdn-upload, gar-publish]
+    needs: [ build-and-publish, cdn-upload, gar-publish ]
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
@@ -218,10 +216,9 @@ jobs:
           IMAGE: ${{ needs.gar-publish.outputs.image }}
           VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{inputs.base-path}}
 
-
   bygg-app-for-playwright:
     runs-on: ubuntu-latest
-    needs: [build-and-publish]
+    needs: [ build-and-publish ]
     env:
       IMAGE_NAME: ${{ github.repository }}-e2e
       REGISTRY: ghcr.io
@@ -247,7 +244,7 @@ jobs:
       image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
   playwright:
-    needs: [build-and-publish, bygg-app-for-playwright]
+    needs: [ build-and-publish, bygg-app-for-playwright ]
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v${{ needs.build-and-publish.outputs.playwright-version }}-noble
@@ -266,12 +263,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        shardIndex: [ 1, 2, 3, 4 ]
+        shardTotal: [ 4 ]
     steps:
       - uses: actions/checkout@v6
-      - name: Installer npm avhengigheter
-        run: npm ci
+      - run: npm ci
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Playwright
@@ -279,7 +275,7 @@ jobs:
         env:
           APP_BASEURL: http://app-main:3000
           APP_DECORATOR_BASEURL: http://app-decorator:3000
-      - name: Upload blob report to GitHub Actions Artifacts
+      - name: Upload Playwright report to GitHub Actions
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
@@ -289,7 +285,7 @@ jobs:
 
   playwright-rapport:
     if: ${{ !cancelled() && !startsWith(github.ref_name, 'dependabot/') }}
-    needs: [playwright]
+    needs: [ playwright ]
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
