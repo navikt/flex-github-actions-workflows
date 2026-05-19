@@ -43,6 +43,7 @@ jobs:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: pnpm run prettier:check
       - run: pnpm run lint
+      - run: pnpm run test
       - run: pnpm run build
       - run: pnpm prune --prod
 
