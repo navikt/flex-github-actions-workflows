@@ -29,7 +29,7 @@ jobs:
     outputs:
       playwright-version: ${{ steps.playwright-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -150,7 +150,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
@@ -181,7 +181,7 @@ jobs:
       DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
       DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Deploy demo branch til dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
@@ -207,7 +207,7 @@ jobs:
     concurrency: deploy-demo-til-dev-gcp
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Deploy til dev-gcp
         uses: nais/deploy/actions/deploy@v2
         env:
@@ -266,7 +266,7 @@ jobs:
         shardIndex: [ 1, 2, 3, 4, 5, 6 ]
         shardTotal: [ 6 ]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: npm ci
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -291,7 +291,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
