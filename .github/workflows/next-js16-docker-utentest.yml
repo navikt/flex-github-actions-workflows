@@ -1,0 +1,356 @@
+name: Next.js 16
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: false
+        default: ${{ github.event.repository.name }}
+        type: string
+      base-path:
+        required: true
+        type: string
+    outputs:
+      image-dev:
+        value: ${{ jobs.bygg-dev.outputs.image }}
+      image-prod:
+        value: ${{ jobs.bygg-prod.outputs.image }}
+      image-demo:
+        value: ${{ jobs.bygg-demo.outputs.image-gar }}
+
+# Bygger per miljø fordi Next.js 16 baker inn miljøvariabler (NEXT_PUBLIC_*) ved byggetidspunktet.
+# Forventer miljøfiler i nais/envs/.env.dev, .env.prod og .env.demo.
+
+jobs:
+  installer:
+    permissions:
+      packages: read
+      contents: read
+    name: Installer avhengigheter
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    outputs:
+      playwright-version: ${{ steps.playwright-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Installer npm-avhengigheter
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm ci
+      - name: Hent Playwright-versjon
+        id: playwright-version
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> $GITHUB_OUTPUT
+      - name: Cache workspace
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}
+          key: workspace-${{ github.sha }}
+
+  bygg-dev:
+    permissions:
+      packages: read
+      contents: read
+      id-token: write
+    name: Bygg og publiser dev
+    timeout-minutes: 15
+    needs: installer
+    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+    steps:
+      - name: Gjenopprett workspace
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}
+          key: workspace-${{ github.sha }}
+      - name: Next.js cache (dev)
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-dev-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-dev-${{ hashFiles('**/package-lock.json') }}-
+      - name: Kopier dev-miljøfil
+        run: cp nais/envs/.env.dev .env.production
+      - run: rm .env
+      - run: touch .env
+      - name: Bygg applikasjon
+        run: npm run build
+        env:
+          NEXT_PUBLIC_VERSION: ${{ github.sha }}
+      - name: Last opp statiske filer til NAV CDN
+        uses: nais/deploy/actions/cdn-upload/v2@master
+        with:
+          team: flex
+          source: ./.next/static
+          destination: /${{ github.event.repository.name }}/_next
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+      - name: Fjern dev-avhengigheter
+        run: npm prune --production
+      - name: docker-build-push
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: flex
+          image_suffix: dev
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
+  bygg-prod:
+    permissions:
+      packages: read
+      contents: read
+      id-token: write
+    name: Bygg og publiser prod
+    timeout-minutes: 15
+    needs: installer
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+    steps:
+      - name: Gjenopprett workspace
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}
+          key: workspace-${{ github.sha }}
+      - name: Next.js cache (prod)
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-prod-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-prod-${{ hashFiles('**/package-lock.json') }}-
+      - name: Kopier prod-miljøfil
+        run: cp nais/envs/.env.prod .env.production
+      - run: rm .env
+      - run: touch .env
+      - name: Bygg applikasjon
+        run: npm run build
+        env:
+          NEXT_PUBLIC_VERSION: ${{ github.sha }}
+      - name: Last opp statiske filer til NAV CDN
+        uses: nais/deploy/actions/cdn-upload/v2@master
+        with:
+          team: flex
+          source: ./.next/static
+          destination: /${{ github.event.repository.name }}/_next
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+      - name: Fjern dev-avhengigheter
+        run: npm prune --production
+      - name: docker-build-push
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: flex
+          image_suffix: prod
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
+  lint:
+    name: lint
+    timeout-minutes: 15
+    needs: installer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gjenopprett workspace
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}
+          key: workspace-${{ github.sha }}
+      - name: Run prettier
+        run: npm run prettier:check
+      - name: Run lint
+        run: npm run lint
+
+  unit-test:
+    name: unit-test
+    timeout-minutes: 15
+    needs: installer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gjenopprett workspace
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}
+          key: workspace-${{ github.sha }}
+      - name: Run tests
+        run: npm run test:ci
+
+  codeql-analyse:
+    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
+    name: codeql-analyse
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          queries: security-and-quality
+          languages: javascript
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript
+
+  bygg-demo:
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+    name: Bygg, test og publiser docker image
+    runs-on: ubuntu-latest
+    needs: installer
+    env:
+      IMAGE_NAME: ${{ github.repository }}-e2e
+      REGISTRY: ghcr.io
+    outputs:
+      image-gar: ${{ steps.docker-build-push.outputs.image }}
+      image-ghcr: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+    steps:
+      - name: Gjenopprett workspace
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}
+          key: workspace-${{ github.sha }}
+      - name: Next.js cache (demo)
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-demo-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-demo-${{ hashFiles('**/package-lock.json') }}-
+      - name: Kopier demo-miljøfil
+        run: cp nais/envs/.env.demo .env.production
+      - run: rm .env
+      - run: touch .env
+      - name: Bygg applikasjon
+        run: npm run build
+        env:
+          NEXT_PUBLIC_VERSION: ${{ github.sha }}
+      - name: Last opp statiske filer til NAV CDN
+        uses: nais/deploy/actions/cdn-upload/v2@master
+        with:
+          team: flex
+          source: ./.next/static
+          destination: /${{ github.event.repository.name }}/_next
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+      - name: Fjern dev-avhengigheter
+        run: npm prune --production
+      - name: docker-build-push til GAR
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: flex
+          image_suffix: demo
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+      - name: Logg inn i Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bygg og push Docker image til ghcr (Playwright)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy-til-dev:
+    if: github.ref_name == 'main' || startsWith(github.ref_name, 'dev-')
+    name: Deploy til dev
+    timeout-minutes: 15
+    needs: [bygg-dev, unit-test]
+    runs-on: ubuntu-latest
+    concurrency: deploy-${{ inputs.app }}-til-dev
+    steps:
+      - uses: actions/checkout@v7
+      - uses: nais/deploy/actions/deploy@v2
+        name: Deploy til dev-gcp
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: nais/app/naiserator.yaml
+          VAR: image=${{ needs.bygg-dev.outputs.image }},kafkaPool=nav-dev,unleash-environment=development
+          VARS: nais/app/dev.yaml
+
+  deploy-til-prod:
+    if: github.ref_name == 'main'
+    name: Deploy til prod
+    timeout-minutes: 15
+    needs: [bygg-prod, unit-test]
+    runs-on: ubuntu-latest
+    concurrency: deploy-${{ inputs.app }}-til-prod
+    steps:
+      - uses: actions/checkout@v7
+      - uses: nais/deploy/actions/deploy@v2
+        name: Deploy til prod-gcp
+        env:
+          CLUSTER: prod-gcp
+          RESOURCE: nais/app/naiserator.yaml
+          VAR: image=${{ needs.bygg-prod.outputs.image }},kafkaPool=nav-prod,unleash-environment=production
+          VARS: nais/app/prod.yaml
+
+  deploy-demo-branch-til-dev-gcp:
+    if: startsWith(github.ref_name, 'demo-') || startsWith(github.ref_name, 'dev-')
+    name: Deploy demo branch til dev-gcp
+    timeout-minutes: 15
+    needs: [bygg-demo]
+    runs-on: ubuntu-latest
+    env:
+      DEMO_APPNAME: demo-${{ inputs.app }}-${{ github.ref_name }}
+      DEMO_INGRESS: ${{ inputs.app }}-${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Deploy demo branch til dev-gcp
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: nais/app/demo.yaml
+          IMAGE: ${{ needs.bygg-demo.outputs.image-gar }}
+          VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{ inputs.base-path }},TTL_HOURS=168h
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_MESSAGE: 'Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{ inputs.base-path }}'
+          SLACK_TITLE: ${{ github.ref_name }}
+          SLACK_USERNAME: Demo deploy
+          SLACK_ICON: ':lab_coat:'
+          SLACK_WEBHOOK: ${{ secrets.LABS_DEPLOY_WEBHOOK }}
+
+  deploy-demo-til-dev-gcp:
+    if: github.ref_name == 'main'
+    name: Deploy demo til dev-gcp
+    timeout-minutes: 15
+    needs: [bygg-demo]
+    concurrency: deploy-demo-til-dev-gcp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Deploy til dev-gcp
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: nais/app/demo.yaml
+          IMAGE: ${{ needs.bygg-demo.outputs.image-gar }}
+          VAR: appname=demo-${{ inputs.app }},replicas=1,branchState=alive,ingress=https://demo.ekstern.dev.nav.no/${{ inputs.base-path }}
+
+
+
