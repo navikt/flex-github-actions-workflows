@@ -229,7 +229,7 @@ jobs:
           path: ${{ github.workspace }}
           key: workspace-${{ github.sha }}
       - name: Log in to the Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@v4.5.2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
