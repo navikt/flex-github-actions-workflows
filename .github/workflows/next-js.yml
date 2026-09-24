@@ -180,7 +180,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Deploy demo branch til dev-gcp
-        uses: nais/deploy/actions/deploy@v2
+        uses: nais/deploy/actions/deploy@v3
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
@@ -206,7 +206,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Deploy til dev-gcp
-        uses: nais/deploy/actions/deploy@v2
+        uses: nais/deploy/actions/deploy@v3
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml

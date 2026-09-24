@@ -372,7 +372,7 @@ jobs:
     concurrency: deploy-${{ inputs.app }}-til-dev
     steps:
       - uses: actions/checkout@v7
-      - uses: nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@v3
         name: Deploy til dev-gcp
         env:
           CLUSTER: dev-gcp
@@ -389,7 +389,7 @@ jobs:
     concurrency: deploy-${{ inputs.app }}-til-prod
     steps:
       - uses: actions/checkout@v7
-      - uses: nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@v3
         name: Deploy til prod-gcp
         env:
           CLUSTER: prod-gcp
@@ -409,7 +409,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Deploy demo branch til dev-gcp
-        uses: nais/deploy/actions/deploy@v2
+        uses: nais/deploy/actions/deploy@v3
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
@@ -435,7 +435,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Deploy til dev-gcp
-        uses: nais/deploy/actions/deploy@v2
+        uses: nais/deploy/actions/deploy@v3
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/app/demo.yaml
