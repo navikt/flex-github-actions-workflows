@@ -416,7 +416,7 @@ jobs:
           IMAGE: ${{ needs.bygg-demo.outputs.image-gar }}
           VAR: appname=${{ env.DEMO_APPNAME }},replicas=1,branchState=alive,ingress=https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{ inputs.base-path }},TTL_HOURS=168h
       - name: Slack Notification
-        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58
+        uses: rtCamp/action-slack-notify@06cc13f74fa8d4d2296c09455d91e9453e4025f4
         env:
           SLACK_COLOR: ${{ job.status }}
           SLACK_MESSAGE: 'Ny demo versjon av ${{ inputs.app }} ute :rocket: https://${{ env.DEMO_INGRESS }}.ekstern.dev.nav.no/${{ inputs.base-path }}'
