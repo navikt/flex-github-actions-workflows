@@ -45,14 +45,22 @@ Denne kalles daglig med cronjobber fra alle de andre repoene. I ferieperioder kj
 Denne workflowet styrer deploy-prosessen av en applikasjon til NAIS dev og prod klynger. Brancher prefixet med `dev-`
 vil deployes til dev-gcp. main branchen vil deployes til prod-gcp og dev-gcp.
 
-## Next.js Workflow
+## Next.js workflows
 
-Denne bruker av next.js apper som er eksponert på nav.no. Denne er omfattende og inkluderer playwright testing.
+Det er to Next.js-workflows i bruk: bygg per miljø og lightweight.
 
-## Next.js lightweight Workflow
+### Next.js - bygg per miljø
 
-Brukes av lettvekts next.js apper som ikke er eksponert på nav.no. Denne er enklere enn den over, og har f.eks. ikke
-playwright.
+[`next-js-docker-bygg-pr-miljo.yml`](.github/workflows/next-js-docker-bygg-pr-miljo.yml) brukes av Next.js-apper som er
+eksponert på nav.no. Den bygger separate Docker-images for dev, prod og demo fordi `NEXT_PUBLIC_*`-miljøvariabler
+bakes inn ved byggetidspunktet. Miljøfilene forventes i `nais/envs/.env.dev`, `.env.prod` og `.env.demo`.
+Workflowen inkluderer blant annet enhetstester, Playwright-testing, opplasting av statiske filer til NAV CDN og deploy.
+
+### Next.js lightweight
+
+[`next-js-lightweight.yml`](.github/workflows/next-js-lightweight.yml) brukes av lettere Next.js-apper som ikke er
+eksponert på nav.no. Den bygger ett Docker-image og bruker den felles deploy-workflowen for dev og prod.
+Workflowen kjører formateringskontroll, lint og CodeQL, men ikke Playwright.
 
 ## Spring Boot Workflow
 
