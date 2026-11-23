@@ -92,7 +92,7 @@ jobs:
       - name: Fjern dev-avhengigheter
         run: npm prune --production
       - name: docker-build-push
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@v1
         id: docker-build-push
         with:
           team: flex
@@ -143,7 +143,7 @@ jobs:
       - name: Fjern dev-avhengigheter
         run: npm prune --production
       - name: docker-build-push
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@v1
         id: docker-build-push
         with:
           team: flex
@@ -250,7 +250,7 @@ jobs:
       - name: Fjern dev-avhengigheter
         run: npm prune --production
       - name: docker-build-push til GAR
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@v1
         id: docker-build-push
         with:
           team: flex
